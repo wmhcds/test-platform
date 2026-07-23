@@ -46,7 +46,7 @@ _MAX_RETRIES = 1
 async def send_request(
     method: str = Form(...),
     url: str = Form(...),
-    login_type: str = Form(DEFAULT_LOGIN_TYPE),
+    login_type: str = Form(""),
     headers: Optional[str] = Form(None),
     body: Optional[str] = Form(None),
     files: List[UploadFile] = File(default=[]),
@@ -60,7 +60,7 @@ async def send_request(
     else:
         full_url = f"{API_HOST}{url}"
 
-    print(f"[http_proxy] [{login_type}] {method} {full_url}")
+    print(f"[http_proxy] v2 [{login_type}] {method} {full_url}")
 
     req_headers = {"User-Agent": UA}
     if headers and headers.strip():
