@@ -50,7 +50,11 @@ interface HistoryItem {
 const MAX_HISTORY = 20
 
 // 登录方式枚举（后续接入新系统时在此追加选项）
-const LOGIN_OPTIONS = [{ value: 'XBOSS', label: 'XBOSS' }]
+// value 为空串表示「匿名请求」，适合访问公网接口或不需要登录态的场景
+const LOGIN_OPTIONS = [
+  { value: '', label: '无（匿名）' },
+  { value: 'XBOSS', label: 'XBOSS' },
+]
 
 export default function HttpClient() {
   const [method, setMethod] = useState<'GET' | 'POST'>('POST')
@@ -65,7 +69,7 @@ export default function HttpClient() {
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [historyOpen, setHistoryOpen] = useState(false)
   const [detailItem, setDetailItem] = useState<HistoryItem | null>(null)
-  const [loginType, setLoginType] = useState('XBOSS')
+  const [loginType, setLoginType] = useState('')
 
   const isPost = method === 'POST'
   const hasFiles = fileList.length > 0

@@ -90,24 +90,36 @@ async def send_request(
             else:
                 json_data = parsed_body
 
-        for attempt in range(_MAX_RETRIES + 1):
-            session = get_session(login_type)
+        # 是否匿名请求：login_type 为空时不使用登录态 session，直接访问目标地址
+        is_anonymous = not login_type or not login_type.strip()
 
+        if is_anonymous:
             if method == "GET":
-                resp = session.get(full_url, headers=req_headers, **kwargs)
+                resp = requests.get(full_url, headers=req_headers, **kwargs)
             else:
-                resp = session.post(
+                resp = requests.post(
                     full_url, json=json_data, data=data_dict,
                     files=file_data, headers=req_headers, **kwargs
                 )
+        else:
+            for attempt in range(_MAX_RETRIES + 1):
+                session = get_session(login_type)
 
-            # 401 → 登录态过期，重新登录后重试一次（仅重试 1 次）
-            if resp.status_code == 401 and attempt < _MAX_RETRIES:
-                print("[http_proxy] 检测到 401，自动重新登录并重试...")
-                reset_session(login_type)
-                continue
+                if method == "GET":
+                    resp = session.get(full_url, headers=req_headers, **kwargs)
+                else:
+                    resp = session.post(
+                        full_url, json=json_data, data=data_dict,
+                        files=file_data, headers=req_headers, **kwargs
+                    )
 
-            break
+                # 401 → 登录态过期，重新登录后重试一次（仅重试 1 次）
+                if resp.status_code == 401 and attempt < _MAX_RETRIES:
+                    print("[http_proxy] 检测到 401，自动重新登录并重试...")
+                    reset_session(login_type)
+                    continue
+
+                break
 
         try:
             text = json.dumps(resp.json(), ensure_ascii=False, indent=2)
