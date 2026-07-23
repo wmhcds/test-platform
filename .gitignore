@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+
+# pytest
+.pytest_cache/
+
+# Database (local)
+*.db
+data/
+
+# Test reports
+reports/*.html
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Frontend
+web/node_modules/
+web/dist/
+frontend/node_modules/
+frontend/dist/
+
+# Environment config
+.env
+.env.cloudbase
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+api_call_log.txt
+
+# ngrok
+ngrok.exe
+
+# Temp files
+_e.txt
+_err.txt
+_v.txt
+_verify.txt
+out_startup.txt
+
+# Deployment (contains envId)
+cloudbaserc.json
+deploy_cloudbase.ps1
+deploy_cloudbase.sh
+build_frontend_cloudbase.bat

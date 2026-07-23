@@ -1,0 +1,48 @@
+# ==========================================================
+# AI 用例执行平台 - Docker Compose 部署配置
+#
+# 启动: docker compose up -d
+# 停止: docker compose down
+# 查看日志: docker compose logs -f
+# ==========================================================
+version: "3.8"
+
+services:
+  # ---------- 后端 API 服务 ----------
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: test-platform-server
+    ports:
+      - "${SERVER_PORT:-8000}:8000"
+    volumes:
+      # 持久化 SQLite 数据库
+      - ./data:/app/data
+      # 挂载测试用例目录（方便热更新用例代码）
+      - ./server/tests:/app/tests
+    environment:
+      - DB_TYPE=sqlite
+      - DB_PATH=/app/data/test_platform.db
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    networks:
+      - test-platform
+
+  # ---------- 前端 Web 服务 ----------
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: test-platform-web
+    ports:
+      - "${WEB_PORT:-80}:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+    networks:
+      - test-platform
+
+networks:
+  test-platform:
+    driver: bridge

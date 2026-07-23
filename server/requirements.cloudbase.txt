@@ -1,0 +1,15 @@
+# CloudBase 云托管依赖（免费方案：SQLite + COS）
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+sqlalchemy>=2.0.0
+pydantic>=2.0.0
+requests>=2.31.0
+urllib3>=2.0.0
+pycryptodome>=3.20.0
+
+# COS SDK（数据库备份到腾讯云对象存储）
+cos-python-sdk-v5>=1.9.30
+
+# 测试框架
+pytest>=8.0.0
+pytest-html>=4.1.0
