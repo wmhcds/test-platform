@@ -127,6 +127,7 @@ export default function BatchDetail() {
       </Space>
 
       <Table
+        className="tech-table"
         rowKey="id"
         columns={columns}
         dataSource={dataAny.cases}
