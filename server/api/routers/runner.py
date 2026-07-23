@@ -1,11 +1,13 @@
 """一键执行测试接口：在后台线程中运行 pytest，不阻塞请求。"""
-import sys
+import logging
 import subprocess
+import sys
 
 from fastapi import APIRouter, BackgroundTasks
 
 from utils.path_utils import project_root
 
+logger = logging.getLogger("runner")
 router = APIRouter(prefix="/api", tags=["runner"])
 
 PROJECT_ROOT = project_root()
@@ -17,7 +19,18 @@ def _run_tests(files=None):
         cmd = [sys.executable, "-m", "pytest", *files, "-v"]
     else:
         cmd = [sys.executable, "-m", "pytest", "tests", "-v"]
-    subprocess.run(cmd, cwd=PROJECT_ROOT)
+    logger.info("Running tests: %s", " ".join(cmd))
+    result = subprocess.run(
+        cmd,
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if result.stdout:
+        logger.info("pytest stdout:\n%s", result.stdout)
+    if result.stderr:
+        logger.error("pytest stderr:\n%s", result.stderr)
+    logger.info("pytest exit code: %d", result.returncode)
 
 
 @router.post("/run-tests")
