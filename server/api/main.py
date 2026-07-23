@@ -9,8 +9,9 @@ import sys
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.routers import batches, runner, http_proxy
@@ -41,8 +42,20 @@ app.include_router(http_proxy.router)
 
 # ---- 生产模式：托管前端静态资源 ----
 _WEB_DIST = _ROOT.parent / "web" / "dist"
+_WEB_INDEX = _WEB_DIST / "index.html"
+
 if _WEB_DIST.exists():
-    app.mount("/", StaticFiles(directory=str(_WEB_DIST), html=True), name="web")
+    # 静态资源（JS/CSS/图片等）
+    app.mount("/assets", StaticFiles(directory=str(_WEB_DIST / "assets")), name="assets")
+
+    # SPA 路由兜底：非 API 请求返回 index.html
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        if not _WEB_INDEX.exists():
+            raise HTTPException(status_code=404, detail="index.html not found")
+        return FileResponse(str(_WEB_INDEX))
 
 
 # ---- 启动 & 关闭事件 ----

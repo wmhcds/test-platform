@@ -87,9 +87,26 @@ export default function BatchDetail() {
     },
   ]
 
+  const cardBodyStyle = {
+    background: '#1e293b',
+    border: '1px solid rgba(148,163,184,0.15)',
+    borderRadius: 12,
+  }
+
   return (
-    <Card title={`批次 #${dataAny.id} (${dataAny.batch_name})`}>
-      <Descriptions bordered column={2} style={{ marginBottom: 16 }}>
+    <Card
+      title={`批次 #${dataAny.id} (${dataAny.batch_name})`}
+      headStyle={{ background: '#1e293b', color: '#f1f5f9', borderBottom: '1px solid rgba(148,163,184,0.15)' }}
+      bodyStyle={{ background: '#1e293b' }}
+      style={cardBodyStyle}
+    >
+      <Descriptions
+        bordered
+        column={2}
+        style={{ marginBottom: 16 }}
+        labelStyle={{ background: '#0f172a', color: '#94a3b8' }}
+        contentStyle={{ background: '#1e293b', color: '#f1f5f9' }}
+      >
         <Descriptions.Item label="开始时间">
           {dataAny.start_time || '-'}
         </Descriptions.Item>
