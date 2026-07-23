@@ -296,6 +296,7 @@ export default function BatchList() {
           loading={loading}
           columns={columns}
           dataSource={data}
+          scroll={{ x: 800 }}
           pagination={{
             current,
             pageSize,

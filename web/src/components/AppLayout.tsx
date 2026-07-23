@@ -25,6 +25,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <Layout style={{ minHeight: '100vh', background: 'transparent' }}>
       <Sider
         width={220}
+        breakpoint="md"
+        collapsedWidth={0}
         trigger={null}
         collapsible
         collapsed={collapsed}

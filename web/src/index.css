@@ -563,17 +563,31 @@ body {
 
 /* ==================== 响应式适配 ==================== */
 @media (max-width: 768px) {
+  /* 侧边栏收起后内容区减少 padding */
+  .ant-layout-content {
+    padding: 16px !important;
+  }
+
+  /* 轮播图适配 */
+  .hero-carousel {
+    margin-bottom: 16px;
+    border-radius: 12px;
+  }
+
   .slide-content {
-    padding: 32px 24px;
-    min-height: 280px;
+    padding: 24px 20px;
+    min-height: 200px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
   }
 
   .slide-title {
-    font-size: 26px;
+    font-size: 20px;
   }
 
   .slide-desc {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .slide-right {
@@ -581,6 +595,26 @@ body {
   }
 
   .carousel-slide {
-    min-height: 260px;
+    min-height: 200px;
+  }
+
+  /* 统计卡片间距缩小 */
+  .stats-row {
+    margin-bottom: 16px;
+  }
+
+  /* 表格卡片操作区换行 */
+  .batch-table-card .ant-card-extra {
+    float: none;
+    margin-top: 8px;
+    width: 100%;
+  }
+
+  .batch-table-card .ant-card-extra .ant-space {
+    flex-wrap: wrap;
+  }
+
+  .batch-table-card .ant-card-head-title {
+    white-space: normal;
   }
 }
