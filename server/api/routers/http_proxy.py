@@ -60,7 +60,7 @@ async def send_request(
     else:
         full_url = f"{API_HOST}{url}"
 
-    print(f"[http_proxy] v2 [{login_type}] {method} {full_url}")
+    print(f"[http_proxy] [{login_type}] {method} {full_url}")
 
     req_headers = {"User-Agent": UA}
     if headers and headers.strip():
