@@ -720,3 +720,8 @@ body {
   transform: translateY(-2px) !important;
   box-shadow: 0 6px 16px rgba(148, 163, 184, 0.25) !important;
 }
+
+/* ==================== 报告页统计标题颜色 ==================== */
+.report-stat .ant-statistic-title {
+  color: #f1f5f9 !important;
+}

@@ -35,16 +35,16 @@ export default function Report() {
     >
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
-          <Statistic title="总数" value={data.total} valueStyle={{ color: '#f1f5f9' }} />
+          <Statistic className="report-stat" title="总数" value={data.total} valueStyle={{ color: '#f1f5f9' }} />
         </Col>
         <Col span={6}>
-          <Statistic title="✅ 通过" value={data.passed} valueStyle={{ color: '#22c55e' }} />
+          <Statistic className="report-stat" title="✅ 通过" value={data.passed} valueStyle={{ color: '#22c55e' }} />
         </Col>
         <Col span={6}>
-          <Statistic title="❌ 失败" value={data.failed} valueStyle={{ color: '#ef4444' }} />
+          <Statistic className="report-stat" title="❌ 失败" value={data.failed} valueStyle={{ color: '#ef4444' }} />
         </Col>
         <Col span={6}>
-          <Statistic title="通过率" value={data.rate} valueStyle={{ color: '#f1f5f9' }} />
+          <Statistic className="report-stat" title="通过率" value={data.rate} valueStyle={{ color: '#f1f5f9' }} />
         </Col>
       </Row>
 
@@ -68,7 +68,7 @@ export default function Report() {
             renderItem={(item) => (
               <List.Item>
                 <Tag color="red">❌ {item.status}</Tag>
-                <span style={{ marginRight: 8 }}>{item.case_name}</span>
+                <span style={{ marginRight: 8, color: '#f1f5f9' }}>{item.case_name}</span>
                 <span style={{ color: '#999' }}>{item.case_path}</span>
               </List.Item>
             )}
