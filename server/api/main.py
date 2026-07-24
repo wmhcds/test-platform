@@ -9,12 +9,12 @@ import sys
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from api.routers import batches, runner, http_proxy
+from api.routers import batches, runner, http_proxy, auth
 
 # 确保 server 目录在 sys.path
 _ROOT = Path(__file__).resolve().parent.parent
@@ -39,6 +39,24 @@ app.add_middleware(
 app.include_router(batches.router)
 app.include_router(runner.router)
 app.include_router(http_proxy.router)
+app.include_router(auth.router)
+
+# ---- 登录校验中间件 ----
+PUBLIC_PATHS = {"/api/auth/login", "/api/health"}
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+    # 只对 /api/ 路径做校验，排除登录和健康检查
+    if not path.startswith("/api/") or path in PUBLIC_PATHS:
+        return await call_next(request)
+
+    from api.routers.auth import verify_token
+    auth_header = request.headers.get("Authorization", "")
+    if not verify_token(auth_header):
+        return JSONResponse(status_code=401, content={"detail": "未登录或登录已过期"})
+
+    return await call_next(request)
 
 # ---- 生产模式：托管前端静态资源 ----
 _WEB_DIST = _ROOT.parent / "web" / "dist"

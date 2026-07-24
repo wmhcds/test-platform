@@ -11,6 +11,27 @@ const http = axios.create({
   timeout: 120000, // 测试执行可能较慢，120 秒超时
 })
 
+// 请求拦截器：自动附带 token
+http.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// 响应拦截器：401 时清除 token 并刷新页面（强制跳转登录页）
+http.interceptors.response.use(
+  (resp) => resp,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth_token')
+      window.location.reload()
+    }
+    return Promise.reject(error)
+  },
+)
+
 export interface BatchSummary {
   id: number
   batch_name: string

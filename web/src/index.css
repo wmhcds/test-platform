@@ -618,3 +618,74 @@ body {
     white-space: normal;
   }
 }
+
+/* ==================== 登录页样式 ==================== */
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0b1120 0%, #0f172a 50%, #0c1929 100%);
+  padding: 24px;
+}
+
+.login-card {
+  width: 400px;
+  max-width: 100%;
+  background: rgba(17, 25, 40, 0.85) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(148, 163, 184, 0.1) !important;
+  border-radius: 16px !important;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.login-logo {
+  font-size: 48px;
+  color: #6366f1;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 16px rgba(99, 102, 241, 0.5));
+}
+
+.login-card .ant-input-affix-wrapper,
+.login-card .ant-input {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border-color: rgba(148, 163, 184, 0.15) !important;
+  color: #e2e8f0 !important;
+  border-radius: 10px !important;
+}
+
+.login-card .ant-input-affix-wrapper input,
+.login-card .ant-input {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+}
+
+.login-card .ant-input-affix-wrapper .ant-input-prefix {
+  color: #64748b;
+}
+
+.login-card .ant-input-affix-wrapper:focus-within,
+.login-card .ant-input:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15) !important;
+}
+
+.login-card .ant-btn-primary {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  height: 44px;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35) !important;
+}
+
+.login-card .ant-btn-primary:hover {
+  background: linear-gradient(135deg, #818cf8, #a78bfa) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45) !important;
+}

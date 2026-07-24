@@ -1,0 +1,4 @@
+[auth]
+# 登录账号和密码（部署前请修改默认密码）
+username = "admin"
+password = "admin123"
