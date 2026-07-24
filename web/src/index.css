@@ -694,3 +694,29 @@ body {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45) !important;
 }
+
+/* ==================== 按钮浮动效果 ==================== */
+.btn-float-primary {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35) !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-float-primary:hover {
+  background: linear-gradient(135deg, #818cf8, #a78bfa) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45) !important;
+}
+
+.btn-float-default {
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-float-default:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(148, 163, 184, 0.25) !important;
+}

@@ -120,10 +120,16 @@ export default function BatchDetail() {
       </Descriptions>
 
       <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" onClick={() => navigate(`/report/${dataAny.id}`)}>
+        <Button
+          type="primary"
+          className="btn-float-primary"
+          onClick={() => navigate(`/report/${dataAny.id}`)}
+        >
           查看测试报告
         </Button>
-        <Button onClick={() => navigate('/')}>返回列表</Button>
+        <Button className="btn-float-default" onClick={() => navigate('/')}>
+          返回列表
+        </Button>
       </Space>
 
       <Table
