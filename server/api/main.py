@@ -61,44 +61,51 @@ if _WEB_DIST.exists():
 # ---- 启动 & 关闭事件 ----
 @app.on_event("startup")
 def on_startup():
-    """应用启动：初始化数据库 + 恢复备份 + 启动后台维护。"""
+    """应用启动：COS 恢复 → 初始化数据库 → 后台同步 + 自动清理。"""
+    import threading
+    import time
+
     from db.database import init_db
+    from utils.cos_storage import download_db, _cos_enabled
+    from utils.path_utils import db_path
+
+    db_file = db_path()
+
+    # 本地 DB 不存在或为空时，从 COS 恢复
+    if _cos_enabled() and (not os.path.exists(db_file) or os.path.getsize(db_file) == 0):
+        logger.info("Local DB missing/empty, restoring from COS...")
+        download_db(db_file)
+
     init_db()
     logger.info("Database initialized")
 
-    # 如果数据库为空，尝试从 JSON 备份恢复
+    # COS 后台定期备份
     try:
-        from utils.persistence import import_from_json_if_empty, _start_background_maintenance
-        restored = import_from_json_if_empty()
-        if restored:
-            logger.info("Data restored from JSON backup")
-        _start_background_maintenance()
-    except Exception as e:
-        logger.warning(f"Persistence setup failed: {e}")
-
-    # 启动 COS 定期备份（如果配置了 COS 环境变量）
-    try:
-        from utils.cos_storage import start_background_sync, _cos_enabled
-        from utils.path_utils import db_path
+        from utils.cos_storage import start_background_sync
         if _cos_enabled():
-            start_background_sync(db_path(), interval=300)  # 每 5 分钟备份
+            start_background_sync(db_file, interval=300)
             logger.info("COS background sync started")
     except Exception as e:
         logger.warning(f"COS sync not started: {e}")
 
+    # 后台线程：每 5 分钟检查并清理超过 200 条旧批次
+    def _auto_cleanup():
+        logger.info("Auto cleanup daemon started (keep=200)")
+        while True:
+            time.sleep(300)
+            try:
+                from utils.db_utils import cleanup_old_batches
+                cleanup_old_batches(keep=200)
+            except Exception as e:
+                logger.error(f"Auto cleanup error: {e}")
+
+    t = threading.Thread(target=_auto_cleanup, daemon=True)
+    t.start()
+
 
 @app.on_event("shutdown")
 def on_shutdown():
-    """应用关闭：最后一次导出 JSON + COS 备份。"""
-    # JSON 备份
-    try:
-        from utils.persistence import export_all_to_json
-        export_all_to_json()
-        logger.info("Final JSON backup on shutdown")
-    except Exception as e:
-        logger.warning(f"Shutdown JSON backup failed: {e}")
-
-    # COS 备份
+    """应用关闭：最后一次备份数据库到 COS。"""
     try:
         from utils.cos_storage import upload_db, _cos_enabled
         from utils.path_utils import db_path

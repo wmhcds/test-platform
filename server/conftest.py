@@ -44,13 +44,20 @@ def pytest_sessionfinish(session, exitstatus):
                 batch.end_time = datetime.datetime.now()
                 db.commit()
 
-    # 执行完成后：清理旧记录 + 导出 JSON 备份
+    # 执行完成后：清理旧批次（保留 200 条）+ 备份到 COS
     try:
-        from utils.persistence import cleanup_old_batches, export_all_to_json
-        cleanup_old_batches(100)
-        export_all_to_json()
+        from utils.db_utils import cleanup_old_batches
+        cleanup_old_batches(keep=200)
     except Exception as e:
-        print(f"[persistence] backup after batch failed: {e}")
+        print(f"[cleanup] failed: {e}")
+
+    try:
+        from utils.cos_storage import upload_db, _cos_enabled
+        from utils.path_utils import db_path
+        if _cos_enabled():
+            upload_db(db_path())
+    except Exception as e:
+        print(f"[cos backup] failed: {e}")
 
 def _extract_error_msg(excinfo):
     """从 pytest ExceptionInfo 中提取错误信息，兼容新旧版本。"""
