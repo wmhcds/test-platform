@@ -1,7 +1,8 @@
-import { Layout, Menu, Button, Tooltip } from 'antd'
+import { Layout, Menu, Button, Tooltip, message } from 'antd'
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  LogoutOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
@@ -9,10 +10,31 @@ import { useState } from 'react'
 
 const { Sider, Content } = Layout
 
-export default function AppLayout({ children }: { children: ReactNode }) {
+interface Props {
+  children: ReactNode
+  onLogout: () => void
+}
+
+export default function AppLayout({ children, onLogout }: Props) {
   const navigate = useNavigate()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('auth_token') || ''
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    } catch {
+      // ignore
+    } finally {
+      localStorage.removeItem('auth_token')
+      onLogout()
+      message.success('已退出登录')
+    }
+  }
 
   const selectedKey =
     location.pathname === '/'
@@ -26,7 +48,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <Sider
         width={220}
         breakpoint="md"
-        collapsedWidth={0}
+        collapsedWidth={64}
         trigger={null}
         collapsible
         collapsed={collapsed}
@@ -36,6 +58,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           borderRight: '1px solid rgba(148,163,184,0.12)',
           transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           overflow: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         {/* Logo 区域 */}
@@ -46,7 +70,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             justifyContent: collapsed ? 'center' : 'flex-start',
             gap: 10,
             height: 64,
-            padding: collapsed ? '0 16px' : '0 20px',
+            padding: collapsed ? '0 12px' : '0 20px',
             borderBottom: '1px solid rgba(148,163,184,0.14)',
             flexShrink: 0,
           }}
@@ -94,12 +118,43 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             background: 'transparent',
             borderRight: 0,
             marginTop: 8,
+            flex: 1,
           }}
           items={[
             { key: '/', icon: '📋', label: '测试批次列表' },
             { key: '/http', icon: '🌐', label: 'HTTP请求' },
           ]}
         />
+
+        {/* 底部登出按钮 */}
+        <div
+          style={{
+            borderTop: '1px solid rgba(148,163,184,0.12)',
+            padding: collapsed ? '12px 0' : '12px 16px',
+            flexShrink: 0,
+          }}
+        >
+          <Tooltip title="退出登录">
+            <Button
+              type="text"
+              icon={<LogoutOutlined />}
+              onClick={handleLogout}
+              block
+              style={{
+                color: '#ef4444',
+                textAlign: collapsed ? 'center' : 'left',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                gap: 8,
+                borderRadius: 8,
+                padding: collapsed ? '4px 0' : '4px 12px',
+              }}
+            >
+              {!collapsed && '退出登录'}
+            </Button>
+          </Tooltip>
+        </div>
       </Sider>
 
       <Layout>

@@ -14,12 +14,17 @@ function getToken(): string | null {
 export default function App() {
   const [token, setToken] = useState<string | null>(getToken())
 
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token')
+    setToken(null)
+  }
+
   if (!token) {
     return <Login onLoginSuccess={(t) => setToken(t)} />
   }
 
   return (
-    <AppLayout>
+    <AppLayout onLogout={handleLogout}>
       <Routes>
         <Route path="/" element={<BatchList />} />
         <Route path="/batch/:id" element={<BatchDetail />} />
