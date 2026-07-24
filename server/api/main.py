@@ -79,6 +79,15 @@ def on_startup():
     init_db()
     logger.info("Database initialized")
 
+    # 首次启动时主动上传一次到 COS，确保 COS 上始终有备份
+    try:
+        from utils.cos_storage import upload_db
+        if _cos_enabled() and os.path.exists(db_file) and os.path.getsize(db_file) > 0:
+            upload_db(db_file)
+            logger.info("Initial COS upload done")
+    except Exception as e:
+        logger.warning(f"Initial COS upload failed: {e}")
+
     # COS 后台定期备份
     try:
         from utils.cos_storage import start_background_sync
