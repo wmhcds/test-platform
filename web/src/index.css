@@ -666,7 +666,12 @@ body {
 }
 
 .login-card .ant-input-affix-wrapper .ant-input-prefix {
-  color: #64748b;
+  color: #94a3b8;
+}
+
+.login-card .ant-input::placeholder,
+.login-card .ant-input-affix-wrapper input::placeholder {
+  color: #94a3b8 !important;
 }
 
 .login-card .ant-input-affix-wrapper:focus-within,
