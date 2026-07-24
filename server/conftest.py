@@ -44,6 +44,14 @@ def pytest_sessionfinish(session, exitstatus):
                 batch.end_time = datetime.datetime.now()
                 db.commit()
 
+    # 执行完成后：清理旧记录 + 导出 JSON 备份
+    try:
+        from utils.persistence import cleanup_old_batches, export_all_to_json
+        cleanup_old_batches(100)
+        export_all_to_json()
+    except Exception as e:
+        print(f"[persistence] backup after batch failed: {e}")
+
 def _extract_error_msg(excinfo):
     """从 pytest ExceptionInfo 中提取错误信息，兼容新旧版本。"""
     if excinfo is None:

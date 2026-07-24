@@ -61,10 +61,20 @@ if _WEB_DIST.exists():
 # ---- 启动 & 关闭事件 ----
 @app.on_event("startup")
 def on_startup():
-    """应用启动：初始化数据库 + 启动 COS 后台同步。"""
+    """应用启动：初始化数据库 + 恢复备份 + 启动后台维护。"""
     from db.database import init_db
     init_db()
     logger.info("Database initialized")
+
+    # 如果数据库为空，尝试从 JSON 备份恢复
+    try:
+        from utils.persistence import import_from_json_if_empty, _start_background_maintenance
+        restored = import_from_json_if_empty()
+        if restored:
+            logger.info("Data restored from JSON backup")
+        _start_background_maintenance()
+    except Exception as e:
+        logger.warning(f"Persistence setup failed: {e}")
 
     # 启动 COS 定期备份（如果配置了 COS 环境变量）
     try:
@@ -79,7 +89,16 @@ def on_startup():
 
 @app.on_event("shutdown")
 def on_shutdown():
-    """应用关闭：最后一次备份数据库到 COS。"""
+    """应用关闭：最后一次导出 JSON + COS 备份。"""
+    # JSON 备份
+    try:
+        from utils.persistence import export_all_to_json
+        export_all_to_json()
+        logger.info("Final JSON backup on shutdown")
+    except Exception as e:
+        logger.warning(f"Shutdown JSON backup failed: {e}")
+
+    # COS 备份
     try:
         from utils.cos_storage import upload_db, _cos_enabled
         from utils.path_utils import db_path
