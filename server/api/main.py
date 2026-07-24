@@ -59,7 +59,12 @@ async def auth_middleware(request: Request, call_next):
     return await call_next(request)
 
 # ---- 生产模式：托管前端静态资源 ----
-_WEB_DIST = _ROOT.parent / "web" / "dist"
+# _ROOT 是 server/ 目录，在 Docker 中 web/dist 在 _ROOT/web/dist/
+# 本地开发时 web/dist 在 _ROOT.parent/web/dist/
+if (_ROOT / "web" / "dist" / "index.html").exists():
+    _WEB_DIST = _ROOT / "web" / "dist"
+else:
+    _WEB_DIST = _ROOT.parent / "web" / "dist"
 _WEB_INDEX = _WEB_DIST / "index.html"
 
 if _WEB_DIST.exists():
