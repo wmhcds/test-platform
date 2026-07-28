@@ -56,35 +56,83 @@ export default function BatchDetail() {
 
   if (!dataAny) return <Card>批次不存在</Card>
 
+  const tableData = (dataAny.folders || []).map((folder: any, fi: number) => ({
+    ...folder,
+    key: `folder-${fi}`,
+    isFolder: true,
+    children: folder.cases.map((c: any, ci: number) => ({
+      ...c,
+      key: `case-${fi}-${ci}`,
+      isFolder: false,
+    })),
+  }))
+
   const columns = [
     {
-      title: '用例名称',
-      dataIndex: 'case_name',
-      key: 'case_name',
-      render: (v: string, record: CaseRun) => (
-        <a onClick={() => handleCaseClick(record)} style={{ cursor: 'pointer', color: '#f1f5f9' }}>
-          {v}
-        </a>
-      ),
-    },
-    { title: '用例路径', dataIndex: 'case_path', key: 'case_path', ellipsis: true },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 120,
-      render: (v: string) => (
-        <Tag color={v === 'passed' ? 'green' : v === 'failed' ? 'red' : 'orange'}>
-          {v === 'passed' ? '✅ 通过' : v === 'failed' ? '❌ 失败' : v}
-        </Tag>
-      ),
+      title: '用例名称 / 文件夹',
+      dataIndex: 'folder',
+      key: 'name',
+      render: (_: any, record: any) => {
+        if (record.isFolder) {
+          return (
+            <span style={{ fontWeight: 600, color: '#f1f5f9', fontSize: 14 }}>
+              📁 {record.folder}
+            </span>
+          )
+        }
+        return (
+          <a onClick={() => handleCaseClick(record)} style={{ cursor: 'pointer', paddingLeft: 8, color: '#f1f5f9' }}>
+            {record.case_name}
+          </a>
+        )
+      },
     },
     {
-      title: '耗时(ms)',
-      dataIndex: 'duration',
-      key: 'duration',
-      width: 120,
-      render: (v: number | null) => (v != null ? `${v}ms` : '-'),
+      title: '用例数 / 路径',
+      dataIndex: 'case_count',
+      key: 'info',
+      width: 200,
+      render: (_: any, record: any) => {
+        if (record.isFolder) {
+          return <span style={{ color: '#cbd5e1' }}>共 {record.case_count} 个用例</span>
+        }
+        return <span style={{ fontSize: 12, color: '#cbd5e1' }}>{record.case_path}</span>
+      },
+    },
+    {
+      title: '通过 / 失败 / 状态',
+      dataIndex: 'passed_count',
+      key: 'pass_fail',
+      width: 130,
+      render: (_: any, record: any) => {
+        if (record.isFolder) {
+          return (
+            <span>
+              <span style={{ color: '#4ade80', marginRight: 12 }}>✅ {record.passed_count}</span>
+              <span style={{ color: '#ef4444' }}>❌ {record.failed_count}</span>
+            </span>
+          )
+        }
+        return (
+          <Tag color={record.status === 'passed' ? 'green' : record.status === 'failed' ? 'red' : 'orange'}>
+            {record.status === 'passed' ? '✅ 通过' : record.status === 'failed' ? '❌ 失败' : record.status}
+          </Tag>
+        )
+      },
+    },
+    {
+      title: '通过率 / 耗时',
+      dataIndex: 'rate',
+      key: 'rate_duration',
+      width: 130,
+      render: (_: any, record: any) => {
+        if (record.isFolder) {
+          const rateNum = parseFloat(record.rate)
+          const color = rateNum >= 90 ? '#4ade80' : rateNum >= 60 ? '#facc15' : '#ef4444'
+          return <span style={{ color, fontWeight: 600 }}>{record.rate}</span>
+        }
+        return record.duration != null ? `${record.duration}ms` : '-'
+      },
     },
   ]
 
@@ -135,10 +183,14 @@ export default function BatchDetail() {
 
       <Table
         className="tech-table"
-        rowKey="id"
+        rowKey="key"
         columns={columns}
-        dataSource={dataAny.cases}
+        dataSource={tableData}
         pagination={false}
+        expandable={{
+          defaultExpandAllRows: true,
+          rowExpandable: (record: any) => record.isFolder,
+        }}
       />
 
       {/* 用例详情弹窗 */}

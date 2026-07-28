@@ -1,5 +1,7 @@
 """批次相关接口：列表、详情、报告、用例源码。"""
 import inspect
+import os
+from collections import defaultdict
 from datetime import timezone
 from pathlib import Path
 
@@ -201,6 +203,42 @@ def get_batch(batch_id: int, db: Session = Depends(get_db)):
         "error_message": c.error_message or "",
     } for c in case_runs]
 
+    # 按文件夹归档分组
+    folders_map: dict[str, list] = defaultdict(list)
+    for c in case_runs:
+        folder = os.path.dirname(c.case_path) if c.case_path else ''
+        if not folder:
+            folder = '(根目录)'
+        folders_map[folder].append(c)
+
+    # 文件夹按名称排序，根目录排最后
+    def _folder_sort_key(name: str) -> tuple:
+        return (1, name) if name == '(根目录)' else (0, name)
+
+    folders = []
+    for folder_name in sorted(folders_map.keys(), key=_folder_sort_key):
+        f_cases = folders_map[folder_name]
+        f_passed = sum(1 for c in f_cases if c.status == 'passed')
+        f_failed = sum(1 for c in f_cases if c.status == 'failed')
+        f_total = len(f_cases)
+        f_rate = f"{f_passed / f_total * 100:.1f}%" if f_total > 0 else "0%"
+
+        folders.append({
+            "folder": folder_name,
+            "case_count": f_total,
+            "passed_count": f_passed,
+            "failed_count": f_failed,
+            "rate": f_rate,
+            "cases": [{
+                "id": c.id,
+                "case_name": c.case_name,
+                "case_path": c.case_path,
+                "status": c.status,
+                "duration": c.duration,
+                "error_message": c.error_message or "",
+            } for c in f_cases],
+        })
+
     return {
         "id": b.id,
         "batch_name": b.batch_name,
@@ -211,6 +249,7 @@ def get_batch(batch_id: int, db: Session = Depends(get_db)):
         "failed": b.failed,
         "rate": stats["rate"],
         "cases": cases,
+        "folders": folders,
     }
 
 
