@@ -334,9 +334,17 @@ export default function BatchList() {
             <span style={{ color: '#94a3b8', fontSize: 12 }}>
               已选 {selectedBatchIds.length} 个批次
             </span>
-            <Button size="small" onClick={() => setSelectedBatchIds(data.map((b) => b.id))}>全选</Button>
-            <Button size="small" onClick={() => setSelectedBatchIds([])}>取消全选</Button>
-            <Button danger size="small" icon={<DeleteOutlined />} onClick={handleBatchDelete}>
+            <Button
+              className="refresh-btn"
+              onClick={() =>
+                selectedBatchIds.length === data.length && data.length > 0
+                  ? setSelectedBatchIds([])
+                  : setSelectedBatchIds(data.map((b) => b.id))
+              }
+            >
+              {selectedBatchIds.length === data.length && data.length > 0 ? '取消全选' : '全选'}
+            </Button>
+            <Button danger className="refresh-btn" icon={<DeleteOutlined />} onClick={handleBatchDelete}>
               批量删除
             </Button>
             <Button icon={<SelectOutlined />} onClick={openSelectModal} className="refresh-btn">
