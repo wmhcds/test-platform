@@ -50,6 +50,16 @@ export interface CaseSourceData {
   source: string
 }
 
+export interface AiAnalysisData {
+  batch_id: number
+  batch_name: string
+  total: number
+  passed: number
+  failed: number
+  rate: string
+  summary: string
+}
+
 export const api = {
   listBatches: () => http.get<BatchSummary[]>('/batches').then((r) => r.data),
   getBatch: (id: number) =>
@@ -67,6 +77,8 @@ export const api = {
   runTests: () => http.post('/run-tests').then((r) => r.data),
   rerunBatch: (id: number) =>
     http.post(`/batches/${id}/rerun`).then((r) => r.data),
+  getAiAnalysis: (id: number) =>
+    http.get<AiAnalysisData>(`/batches/${id}/ai-analysis`).then((r) => r.data),
   sendHttp: (formData: FormData) =>
     http.post('/http/send', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

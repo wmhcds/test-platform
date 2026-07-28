@@ -10,6 +10,7 @@ import {
   ExperimentOutlined,
   RedoOutlined,
   DeleteOutlined,
+  RobotOutlined,
 } from '@ant-design/icons'
 import api, { BatchSummary } from '../api/client'
 
@@ -47,6 +48,18 @@ export default function BatchList() {
   const [current, setCurrent] = useState(1)
   const [selectedBatchIds, setSelectedBatchIds] = useState<number[]>([])
   const navigate = useNavigate()
+
+  // AI 分析
+  const [aiLoading, setAiLoading] = useState<number | null>(null)
+  const [aiModal, setAiModal] = useState<{ open: boolean; data: string | null }>({ open: false, data: null })
+
+  const handleAiAnalysis = (id: number) => {
+    setAiLoading(id)
+    api.getAiAnalysis(id)
+      .then((res) => setAiModal({ open: true, data: res.summary }))
+      .catch(() => message.error('AI 分析失败'))
+      .finally(() => setAiLoading(null))
+  }
 
   const load = () => {
     setLoading(true)
@@ -210,7 +223,7 @@ export default function BatchList() {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 260,
       render: (_: unknown, row: BatchSummary) => (
         <Space size={8}>
           <Button
@@ -235,6 +248,15 @@ export default function BatchList() {
             onClick={() => handleRerun(row.id)}
           >
             重新执行
+          </Button>
+          <Button
+            type="link"
+            style={{ color: '#818cf8' }}
+            icon={<RobotOutlined />}
+            loading={aiLoading === row.id}
+            onClick={() => handleAiAnalysis(row.id)}
+          >
+            AI分析
           </Button>
           <Button
             type="link"
@@ -391,6 +413,34 @@ export default function BatchList() {
           className="tech-table"
         />
       </Card>
+
+      {/* AI 分析弹窗 */}
+      <Modal
+        title={<span style={{ color: '#f1f5f9' }}><RobotOutlined style={{ marginRight: 8, color: '#818cf8' }} />AI 分析结果</span>}
+        open={aiModal.open}
+        onCancel={() => setAiModal({ open: false, data: null })}
+        footer={<Button onClick={() => setAiModal({ open: false, data: null })}>关闭</Button>}
+        width={700}
+      >
+        {aiModal.data ? (
+          <pre style={{
+            background: '#0f172a',
+            border: '1px solid rgba(148,163,184,0.15)',
+            borderRadius: 8,
+            padding: 20,
+            color: '#e2e8f0',
+            fontSize: 14,
+            lineHeight: 1.8,
+            whiteSpace: 'pre-wrap',
+            maxHeight: 500,
+            overflow: 'auto',
+          }}>
+            {aiModal.data}
+          </pre>
+        ) : (
+          <div style={{ textAlign: 'center', padding: 40, color: '#cbd5e1' }}>暂无分析数据</div>
+        )}
+      </Modal>
     </div>
   )
 }

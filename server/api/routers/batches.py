@@ -214,6 +214,80 @@ def get_batch(batch_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/{batch_id}/ai-analysis")
+def get_ai_analysis(batch_id: int, db: Session = Depends(get_db)):
+    """AI 分析：基于批次执行结果生成分析报告。当前为规则化分析，后续可接入 LLM。"""
+    b = db.query(TestBatch).filter(TestBatch.id == batch_id).first()
+    if not b:
+        raise HTTPException(status_code=404, detail="批次不存在")
+
+    case_runs = db.query(CaseRun).filter(CaseRun.batch_id == batch_id).all()
+    stats = summarize_cases(case_runs)
+    failed_cases = [c for c in case_runs if c.status == "failed"]
+    passed_cases = [c for c in case_runs if c.status == "passed"]
+    total = stats["total"]
+    passed = stats["passed"]
+    failed = stats["failed"]
+    rate = stats["rate"]
+
+    # 计算整体历史平均通过率
+    all_batches = db.query(TestBatch).all()
+    hist_total = sum(b2.total_cases or 0 for b2 in all_batches)
+    hist_passed = sum(b2.passed or 0 for b2 in all_batches)
+    hist_rate = f"{(hist_passed / hist_total * 100):.1f}%" if hist_total > 0 else "N/A"
+
+    # 趋势判断
+    try:
+        rate_val = float(rate.replace("%", ""))
+        hist_val = float(hist_rate.replace("%", "")) if hist_rate != "N/A" else rate_val
+    except ValueError:
+        rate_val = 0
+        hist_val = 0
+
+    if rate_val >= 100:
+        trend = "🟢 本次全部通过，质量优秀。"
+    elif rate_val >= hist_val:
+        trend = "🟡 本次通过率不低于历史均值，质量尚可。"
+    else:
+        trend = f"🔴 本次通过率({rate})低于历史均值({hist_rate})，需重点关注。"
+
+    # 失败用例分析
+    failed_list = [f"{c.case_name} ({c.case_path})" for c in failed_cases]
+    if failed:
+        failed_detail = "## 失败用例清单\n\n" + "\n".join(
+            f"- **{c.case_name}**\n  - 路径: `{c.case_path}`\n  - 耗时: {c.duration}ms\n  - 错误: {c.error_message or '无详细信息'}"
+            for c in failed_cases
+        )
+    else:
+        failed_detail = "无失败用例。"
+
+    summary = (
+        f"## 执行概览\n\n"
+        f"- 批次名称: **{b.batch_name}**\n"
+        f"- 用例总数: {total} | 通过: {passed} | 失败: {failed}\n"
+        f"- 通过率: **{rate}**（历史均值: {hist_rate}）\n"
+        f"- 结论: {trend}\n\n"
+        f"{failed_detail}\n\n"
+        f"## 建议\n\n"
+        + (f"1. 优先排查以上 {failed} 个失败用例，关注错误信息中的异常类型\n"
+           f"2. 若为环境/网络问题，检查被测服务是否正常\n"
+           f"3. 若判断为偶发失败，可点击「重新执行」重跑验证\n"
+           if failed else
+           "1. 本次执行全通过，继续保持\n"
+           "2. 可以关注用例耗时是否正常")
+    )
+
+    return {
+        "batch_id": batch_id,
+        "batch_name": b.batch_name,
+        "total": total,
+        "passed": passed,
+        "failed": failed,
+        "rate": rate,
+        "summary": summary,
+    }
+
+
 @router.get("/{batch_id}/report")
 def get_report(batch_id: int, db: Session = Depends(get_db)):
     """返回批次测试报告数据（含失败用例清单）。"""
