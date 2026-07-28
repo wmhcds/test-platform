@@ -748,3 +748,59 @@ body {
 .tc-page-input .ant-input-affix-wrapper .ant-input-prefix {
   color: #94a3b8;
 }
+
+/* ==================== 用例选择树暗色样式 ==================== */
+.case-select-tree {
+  background: transparent !important;
+  color: #f1f5f9 !important;
+}
+
+.case-select-tree .ant-tree-treenode {
+  width: 100%;
+  padding: 4px 0 !important;
+}
+
+.case-select-tree .ant-tree-node-content-wrapper {
+  color: #f1f5f9 !important;
+  background: transparent !important;
+  border-radius: 4px !important;
+}
+
+.case-select-tree .ant-tree-node-content-wrapper:hover {
+  background: rgba(148, 163, 184, 0.15) !important;
+}
+
+.case-select-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+  background: rgba(99, 102, 241, 0.2) !important;
+}
+
+.case-select-tree .ant-tree-switcher {
+  color: #94a3b8 !important;
+  background: transparent !important;
+}
+
+.case-select-tree .ant-tree-switcher:hover {
+  color: #e2e8f0 !important;
+}
+
+.case-select-tree .ant-tree-checkbox-inner {
+  background: #1e293b !important;
+  border-color: #475569 !important;
+}
+
+.case-select-tree .ant-tree-checkbox-checked .ant-tree-checkbox-inner {
+  background: #6366f1 !important;
+  border-color: #6366f1 !important;
+}
+
+.case-select-tree .ant-tree-checkbox-indeterminate .ant-tree-checkbox-inner::after {
+  background: #6366f1 !important;
+}
+
+.case-select-tree .ant-tree-treenode-disabled .ant-tree-node-content-wrapper {
+  color: #64748b !important;
+}
+
+.case-select-tree .ant-tree-list-holder-inner {
+  background: transparent !important;
+}

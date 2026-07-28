@@ -320,17 +320,30 @@ export default function BatchList() {
             暂无测试用例，请先在「测试用例管理」页面创建用例
           </div>
         ) : (
-          <div style={{ maxHeight: 420, overflow: 'auto', background: '#0f172a', borderRadius: 8, padding: '12px 8px' }}>
-            <Tree
-              checkable
-              defaultExpandAll
-              treeData={treeData}
-              checkedKeys={selectedCaseIds.map(String)}
-              onCheck={handleTreeCheck}
-              selectable={false}
-              showLine={{ showLeafIcon: false }}
-              style={{ color: '#94a3b8' }}
-            />
+          <div style={{ background: '#0f172a', borderRadius: 8, padding: 12, border: '1px solid rgba(148,163,184,0.15)' }}>
+            <Space style={{ marginBottom: 12 }}>
+              <Button size="small" onClick={() => setSelectedCaseIds(allCases.map((c) => c.id))}>
+                全选
+              </Button>
+              <Button size="small" onClick={() => setSelectedCaseIds([])}>
+                取消全选
+              </Button>
+              <span style={{ color: '#64748b', fontSize: 12 }}>
+                已选择 {selectedCaseIds.length} 个用例
+              </span>
+            </Space>
+            <div style={{ maxHeight: 380, overflow: 'auto' }}>
+              <Tree
+                checkable
+                defaultExpandAll
+                treeData={treeData}
+                checkedKeys={selectedCaseIds.map(String)}
+                onCheck={handleTreeCheck}
+                selectable={false}
+                showLine={{ showLeafIcon: false }}
+                className="case-select-tree"
+              />
+            </div>
           </div>
         )}
       </Modal>
