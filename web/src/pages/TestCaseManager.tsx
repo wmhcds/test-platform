@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import {
   Card, Table, Button, Input, Modal, Space, message, Tag, Drawer,
-  Typography, Popconfirm, Tooltip,
+  Typography, Popconfirm, Tooltip, Spin,
 } from 'antd'
 import {
   PlusOutlined, EditOutlined, DeleteOutlined,
@@ -10,7 +10,8 @@ import {
 import type { ColumnsType } from 'antd/es/table'
 import api, { TestCaseData, ExecuteResultData } from '../api/client'
 
-const { TextArea } = Input
+const MonacoEditor = lazy(() => import('@monaco-editor/react'))
+
 const { Text, Paragraph } = Typography
 
 export default function TestCaseManager() {
@@ -286,18 +287,39 @@ export default function TestCaseManager() {
         </div>
         <div>
           <Text style={{ color: '#94a3b8', display: 'block', marginBottom: 6 }}>Python 脚本</Text>
-          <TextArea
-            placeholder={'# 在此编写 Python 测试脚本\n# 示例：\nimport requests\n\ndef test_api():\n    resp = requests.get("https://httpbin.org/get")\n    assert resp.status_code == 200\n\nif __name__ == "__main__":\n    test_api()\n    print("OK")'}
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            rows={16}
-            style={{
-              fontFamily: "'Fira Code', 'Consolas', monospace",
-              fontSize: 13,
-              background: '#0f172a',
-              color: '#e2e8f0',
-            }}
-          />
+          <div style={{ border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, overflow: 'hidden' }}>
+            <Suspense fallback={
+              <div style={{ height: 420, background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Spin tip="编辑器加载中..." />
+              </div>
+            }>
+              <MonacoEditor
+                height="420px"
+                language="python"
+                theme="vs-dark"
+                value={editContent}
+                onChange={(val) => setEditContent(val || '')}
+                loading={
+                  <div style={{ height: 420, background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Spin tip="编辑器加载中..." />
+                  </div>
+                }
+                options={{
+                  fontSize: 14,
+                  fontFamily: "'Fira Code', 'Consolas', 'Courier New', monospace",
+                  minimap: { enabled: false },
+                  lineNumbers: 'on',
+                  scrollBeyondLastLine: false,
+                  wordWrap: 'on',
+                  tabSize: 4,
+                  automaticLayout: true,
+                  suggestOnTriggerCharacters: true,
+                  quickSuggestions: true,
+                  padding: { top: 12, bottom: 12 },
+                }}
+              />
+            </Suspense>
+          </div>
         </div>
       </Modal>
 
