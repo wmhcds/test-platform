@@ -91,7 +91,7 @@ export default function BatchList() {
           title: (
             <span style={{ color: '#f1f5f9' }}>
               {c.name}
-              <span style={{ marginLeft: 12, color: '#64748b', fontSize: 12 }}>{c.script_content.length} 字符</span>
+              <span style={{ marginLeft: 12, color: '#cbd5e1', fontSize: 12 }}>{c.script_content.length} 字符</span>
             </span>
           ),
           key: String(c.id),
@@ -100,7 +100,7 @@ export default function BatchList() {
       return {
         title: (
           <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
-            {cat.name} <span style={{ color: '#64748b', fontWeight: 400 }}>({children.length})</span>
+            {cat.name} <span style={{ color: '#cbd5e1', fontWeight: 400 }}>({children.length})</span>
           </span>
         ),
         key: `cat-${cat.id}`,
@@ -113,13 +113,13 @@ export default function BatchList() {
       .map((c) => ({
         title: (
           <span style={{ color: '#f1f5f9' }}>
-            {c.name}
-            <span style={{ marginLeft: 12, color: '#64748b', fontSize: 12 }}>{c.script_content.length} 字符</span>
-          </span>
-        ),
-        key: String(c.id),
-        isLeaf: true,
-      }))
+              {c.name}
+              <span style={{ marginLeft: 12, color: '#cbd5e1', fontSize: 12 }}>{c.script_content.length} 字符</span>
+            </span>
+          ),
+          key: String(c.id),
+          isLeaf: true,
+        }))
 
     return [...categorized, ...uncategorized]
   }, [allCases, allCategories])
@@ -333,7 +333,7 @@ export default function BatchList() {
         title={<span className="card-title-text"><RocketOutlined /> 测试批次列表</span>}
         extra={
           <Space>
-            <span style={{ color: '#94a3b8', fontSize: 12 }}>
+            <span style={{ color: '#e2e8f0', fontSize: 12 }}>
               已选 {selectedBatchIds.length} 个批次
             </span>
             <Button
@@ -393,13 +393,13 @@ export default function BatchList() {
         width={700}
         styles={{ content: { background: '#1e293b' }, header: { background: '#1e293b' } }}
       >
-        <div style={{ color: '#94a3b8', marginBottom: 12 }}>
+        <div style={{ color: '#e2e8f0', marginBottom: 12 }}>
           勾选需要执行的测试用例，保存后点击「一键执行全部用例」将只执行已勾选的用例。
         </div>
         {selectLoading ? (
-          <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>加载中...</div>
+          <div style={{ textAlign: 'center', padding: 40, color: '#cbd5e1' }}>加载中...</div>
         ) : allCases.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
+          <div style={{ textAlign: 'center', padding: 40, color: '#cbd5e1' }}>
             暂无测试用例，请先在「测试用例管理」页面创建用例
           </div>
         ) : (
@@ -411,7 +411,7 @@ export default function BatchList() {
               <Button size="small" onClick={() => setSelectedCaseIds([])}>
                 取消全选
               </Button>
-              <span style={{ color: '#64748b', fontSize: 12 }}>
+              <span style={{ color: '#cbd5e1', fontSize: 12 }}>
                 已选择 {selectedCaseIds.length} 个用例
               </span>
             </Space>

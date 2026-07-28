@@ -329,7 +329,7 @@ export default function BatchList() {
         }
         extra={
           <Space>
-            <span style={{ color: '#94a3b8', fontSize: 12 }}>
+            <span style={{ color: '#e2e8f0', fontSize: 12 }}>
               已选 {selectedBatchIds.length} 个批次
             </span>
             <Button

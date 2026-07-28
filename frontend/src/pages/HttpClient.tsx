@@ -174,7 +174,7 @@ export default function HttpClient() {
       >
       <Space direction="vertical" style={{ width: '100%' }} size="middle">
         <Space>
-          <Text type="secondary">登录方式</Text>
+          <Text style={{ color: '#e2e8f0' }}>登录方式</Text>
           <Select
             value={loginType}
             style={{ width: 160 }}
@@ -211,7 +211,7 @@ export default function HttpClient() {
               marginBottom: 8,
             }}
           >
-            <Text type="secondary">
+            <Text style={{ color: '#e2e8f0' }}>
               自定义 Headers（可选，默认仅携带 User-Agent）
             </Text>
             <Button
@@ -225,7 +225,7 @@ export default function HttpClient() {
           </div>
 
           {headerRows.length === 0 ? (
-            <Text type="secondary" style={{ fontSize: 12 }}>
+            <Text style={{ fontSize: 12, color: '#cbd5e1' }}>
               暂无自定义 Header，点击「新增 Header」按需添加
             </Text>
           ) : (
@@ -261,10 +261,10 @@ export default function HttpClient() {
         {isPost && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-              <Text type="secondary">{bodyLabel}</Text>
+              <Text style={{ color: '#e2e8f0' }}>{bodyLabel}</Text>
               {hasFiles && (
                 <Tooltip title="选择文件后，此处填写的内容会作为 multipart 表单字段提交（而非 JSON Body）。适合文件上传接口需要额外传 fileName / applyNo 等参数的场景。">
-                  <QuestionCircleOutlined style={{ color: '#999', cursor: 'help' }} />
+                  <QuestionCircleOutlined style={{ color: '#cbd5e1', cursor: 'help' }} />
                 </Tooltip>
               )}
             </div>
@@ -280,7 +280,7 @@ export default function HttpClient() {
         {/* 文件上传 */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Text type="secondary">上传文件（图片/文档，可选）</Text>
+            <Text style={{ color: '#e2e8f0' }}>上传文件（图片/文档，可选）</Text>
             {hasFiles && (
               <Tag color="blue" style={{ fontSize: 11 }}>
                 已选 {fileList.length} 个文件 · 上方切换为「表单字段」模式
@@ -350,7 +350,7 @@ export default function HttpClient() {
         onClose={() => setHistoryOpen(false)}
         extra={
           history.length > 0 && (
-            <Text type="secondary">
+            <Text style={{ color: '#e2e8f0' }}>
               共 {history.length} / {MAX_HISTORY} 条
             </Text>
           )
@@ -375,11 +375,11 @@ export default function HttpClient() {
                     >
                       {item.method} {item.status ?? 'ERR'}
                     </Tag>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
+                    <Text style={{ fontSize: 12, color: '#cbd5e1' }}>
                       {item.time}
                     </Text>
                     {item.elapsed != null && (
-                      <Text type="secondary" style={{ fontSize: 12 }}>
+                      <Text style={{ fontSize: 12, color: '#cbd5e1' }}>
                         {item.elapsed}ms
                       </Text>
                     )}

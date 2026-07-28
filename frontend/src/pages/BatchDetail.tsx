@@ -141,14 +141,13 @@ export default function BatchDetail() {
         {/* 报错信息（仅失败用例显示） */}
         {caseModal.caseData?.error_message && (
           <div style={{ marginBottom: 16 }}>
-            <Text strong type="danger" style={{ display: 'block', marginBottom: 4 }}>
+            <Text strong style={{ display: 'block', marginBottom: 4, color: '#ef4444' }}>
               ❌ 错误信息
             </Text>
             <Paragraph
-              type="danger"
               style={{
-                background: '#fff2f0',
-                border: '1px solid #ffccc7',
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
                 borderRadius: 6,
                 padding: '8px 12px',
                 whiteSpace: 'pre-wrap',
@@ -156,6 +155,7 @@ export default function BatchDetail() {
                 fontSize: 13,
                 maxHeight: 200,
                 overflow: 'auto',
+                color: '#f87171',
               }}
             >
               {caseModal.caseData.error_message}
@@ -164,13 +164,13 @@ export default function BatchDetail() {
         )}
 
         {/* 源码 */}
-        <Text strong style={{ display: 'block', marginBottom: 4 }}>
+        <Text strong style={{ display: 'block', marginBottom: 4, color: '#f1f5f9' }}>
           📄 源代码
         </Text>
         <pre
           style={{
-            background: '#f6f8fa',
-            border: '1px solid #d0d7de',
+            background: '#0f172a',
+            border: '1px solid rgba(148, 163, 184, 0.15)',
             borderRadius: 6,
             padding: '12px',
             overflow: 'auto',
@@ -178,12 +178,13 @@ export default function BatchDetail() {
             fontSize: 13,
             lineHeight: 1.5,
             fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+            color: '#e2e8f0',
           }}
         >
           {caseModal.sourceLoading ? '加载中...' : caseModal.source || '(无源码)'}
         </pre>
 
-        <Text type="secondary" style={{ fontSize: 12, marginTop: 8, display: 'block' }}>
+        <Text style={{ fontSize: 12, marginTop: 8, display: 'block', color: '#cbd5e1' }}>
           文件路径：{caseModal.caseData?.case_path}
         </Text>
       </Modal>

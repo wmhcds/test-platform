@@ -102,7 +102,7 @@ export default function AppLayout({ children, onLogout }: Props) {
               onClick={() => setCollapsed(!collapsed)}
               size="small"
               style={{
-                color: '#94a3b8',
+                color: '#cbd5e1',
                 borderRadius: 8,
               }}
             />

@@ -50,7 +50,7 @@ export default function Report() {
               <List.Item>
                 <Tag color="red">❌ {item.status}</Tag>
                 <span style={{ marginRight: 8 }}>{item.case_name}</span>
-                <span style={{ color: '#999' }}>{item.case_path}</span>
+                <span style={{ color: '#cbd5e1' }}>{item.case_path}</span>
               </List.Item>
             )}
           />

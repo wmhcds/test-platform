@@ -48,7 +48,7 @@ export default function Login({ onLoginSuccess }: Props) {
           <Title level={3} style={{ color: '#f1f5f9', margin: 0 }}>
             AI 测试平台
           </Title>
-          <Text type="secondary">请登录以继续使用</Text>
+          <Text style={{ color: '#cbd5e1' }}>请登录以继续使用</Text>
         </div>
 
         <Input

@@ -184,10 +184,10 @@ export default function TestCaseManager() {
       ),
     },
     { title: '脚本长度', dataIndex: 'script_content', width: 100,
-      render: (c: string) => <Text type="secondary">{c.length} 字符</Text> },
+      render: (c: string) => <Text style={{ color: '#f1f5f9' }}>{c.length} 字符</Text> },
     { title: '更新时间', dataIndex: 'updated_at', width: 180,
       sorter: (a, b) => a.updated_at.localeCompare(b.updated_at),
-      render: (t: string) => <Text type="secondary">{t?.replace('T', ' ').substring(0, 19)}</Text> },
+      render: (t: string) => <Text style={{ color: '#f1f5f9' }}>{t?.replace('T', ' ').substring(0, 19)}</Text> },
     {
       title: '操作', key: 'action', width: 260,
       render: (_, row) => (
@@ -223,7 +223,7 @@ export default function TestCaseManager() {
             style={{
               padding: '8px 12px', borderRadius: 6, cursor: 'pointer', marginBottom: 4,
               background: activeCategory === undefined ? 'rgba(129,140,248,0.15)' : 'transparent',
-              color: activeCategory === undefined ? '#818cf8' : '#94a3b8',
+              color: activeCategory === undefined ? '#818cf8' : '#e2e8f0',
               fontWeight: activeCategory === undefined ? 600 : 400,
             }}
           >
@@ -236,17 +236,17 @@ export default function TestCaseManager() {
                 padding: '8px 12px', borderRadius: 6, cursor: 'pointer', marginBottom: 2,
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 background: activeCategory === cat.id ? 'rgba(129,140,248,0.15)' : 'transparent',
-                color: activeCategory === cat.id ? '#818cf8' : '#94a3b8',
+                color: activeCategory === cat.id ? '#818cf8' : '#e2e8f0',
               }}
             >
               <span style={{ fontWeight: activeCategory === cat.id ? 600 : 400 }}>
                 <FolderOutlined style={{ marginRight: 8 }} />{cat.name}
-                <span style={{ marginLeft: 6, fontSize: 12, color: '#64748b' }}>({cat.case_count})</span>
+                <span style={{ marginLeft: 6, fontSize: 12, color: '#cbd5e1' }}>({cat.case_count})</span>
               </span>
               <span>
                 <Button type="text" size="small"
                   onClick={(e) => { e.stopPropagation(); openCatEdit(cat) }}
-                  style={{ color: '#94a3b8', fontSize: 12 }}>✎</Button>
+                  style={{ color: '#cbd5e1', fontSize: 12 }}>✎</Button>
                 <Popconfirm title={`删除目录"${cat.name}"？用例将移至未分类`} onConfirm={(e) => { e?.stopPropagation(); handleCatDelete(cat) }} onCancel={(e) => e?.stopPropagation()}>
                   <Button type="text" size="small" danger
                     onClick={(e) => e.stopPropagation()}
@@ -301,7 +301,7 @@ export default function TestCaseManager() {
         okText="保存" cancelText="取消"
         styles={{ content: { background: '#1e293b' }, header: { background: '#1e293b' } }}
       >
-        <Text style={{ color: '#94a3b8', display: 'block', marginBottom: 6 }}>目录名称</Text>
+        <Text style={{ color: '#e2e8f0', display: 'block', marginBottom: 6 }}>目录名称</Text>
         <Input placeholder="输入目录名称" value={catName} onChange={(e) => setCatName(e.target.value)} />
       </Modal>
 
@@ -313,12 +313,12 @@ export default function TestCaseManager() {
         styles={{ content: { background: '#1e293b' }, header: { background: '#1e293b' } }}
       >
         <div style={{ marginBottom: 16 }}>
-          <Text style={{ color: '#94a3b8', display: 'block', marginBottom: 6 }}>用例名称</Text>
+          <Text style={{ color: '#e2e8f0', display: 'block', marginBottom: 6 }}>用例名称</Text>
           <Input placeholder="输入用例名称（不可与已有名称重复）" value={editName}
             onChange={(e) => setEditName(e.target.value)} style={{ width: '100%' }} />
         </div>
         <div style={{ marginBottom: 16 }}>
-          <Text style={{ color: '#94a3b8', display: 'block', marginBottom: 6 }}>所属目录</Text>
+          <Text style={{ color: '#e2e8f0', display: 'block', marginBottom: 6 }}>所属目录</Text>
           <Select
             placeholder="选择目录（可选）" allowClear style={{ width: '100%' }}
             value={editCategoryId}
@@ -327,7 +327,7 @@ export default function TestCaseManager() {
           />
         </div>
         <div>
-          <Text style={{ color: '#94a3b8', display: 'block', marginBottom: 6 }}>Python 脚本</Text>
+          <Text style={{ color: '#e2e8f0', display: 'block', marginBottom: 6 }}>Python 脚本</Text>
           <div style={{ border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, overflow: 'hidden' }}>
             <Suspense fallback={
               <div style={{ height: 420, background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -368,19 +368,19 @@ export default function TestCaseManager() {
         {execResult && (
           <>
             <div style={{ marginBottom: 16 }}>
-              <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>耗时</Text>
+              <Text style={{ display: 'block', marginBottom: 4, color: '#cbd5e1' }}>耗时</Text>
               <Text style={{ color: '#f1f5f9' }}>{execResult.duration}s</Text>
             </div>
             {execResult.error_message && (
               <div style={{ marginBottom: 16 }}>
-                <Text type="secondary" style={{ display: 'block', marginBottom: 4, color: '#ef4444' }}>错误信息</Text>
+                <Text strong style={{ display: 'block', marginBottom: 4, color: '#ef4444' }}>错误信息</Text>
                 <Paragraph style={{ color: '#f87171', background: 'rgba(239,68,68,0.1)', padding: 12, borderRadius: 8 }}>
                   <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{execResult.error_message}</pre>
                 </Paragraph>
               </div>
             )}
             <div>
-              <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>输出</Text>
+              <Text style={{ display: 'block', marginBottom: 4, color: '#cbd5e1' }}>输出</Text>
               <pre style={{ background: '#0f172a', color: '#a5f3fc', padding: 12, borderRadius: 8, maxHeight: 400, overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: 13 }}>
                 {execResult.output}
               </pre>
