@@ -80,6 +80,23 @@ export interface CaseSourceData {
   source: string
 }
 
+export interface TestCaseData {
+  id: number
+  name: string
+  script_content: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ExecuteResultData {
+  ok: boolean
+  case_name: string
+  status: string
+  duration: number
+  output: string
+  error_message: string
+}
+
 export const api = {
   listBatches: () => http.get<BatchSummary[]>('/batches').then((r) => r.data),
   getBatch: (id: number) =>
@@ -97,6 +114,22 @@ export const api = {
     http.post('/http/send', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then((r) => r.data),
+
+  // 测试用例管理
+  listTestCases: (search?: string) =>
+    http.get<TestCaseData[]>('/test-cases', { params: search ? { search } : {} }).then((r) => r.data),
+  getTestCase: (id: number) =>
+    http.get<TestCaseData>(`/test-cases/${id}`).then((r) => r.data),
+  createTestCase: (data: { name: string; script_content: string }) =>
+    http.post<TestCaseData>('/test-cases', data).then((r) => r.data),
+  updateTestCase: (id: number, data: { name?: string; script_content?: string }) =>
+    http.put<TestCaseData>(`/test-cases/${id}`, data).then((r) => r.data),
+  deleteTestCase: (id: number) =>
+    http.delete(`/test-cases/${id}`).then((r) => r.data),
+  executeTestCase: (id: number) =>
+    http.post<ExecuteResultData>(`/test-cases/${id}/execute`).then((r) => r.data),
+  batchExecute: (caseIds: number[], batchName: string) =>
+    http.post('/test-cases/batch-execute', { case_ids: caseIds, batch_name: batchName }).then((r) => r.data),
 }
 
 export default api

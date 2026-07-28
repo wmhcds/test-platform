@@ -5,6 +5,7 @@ import BatchList from './pages/BatchList'
 import BatchDetail from './pages/BatchDetail'
 import Report from './pages/Report'
 import HttpClient from './pages/HttpClient'
+import TestCaseManager from './pages/TestCaseManager'
 import Login from './pages/Login'
 
 function getToken(): string | null {
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/batch/:id" element={<BatchDetail />} />
         <Route path="/report/:id" element={<Report />} />
         <Route path="/http" element={<HttpClient />} />
+        <Route path="/test-cases" element={<TestCaseManager />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppLayout>

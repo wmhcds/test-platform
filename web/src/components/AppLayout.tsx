@@ -41,7 +41,9 @@ export default function AppLayout({ children, onLogout }: Props) {
       ? '/'
       : location.pathname.startsWith('/report')
         ? '/report'
-        : location.pathname
+        : location.pathname.startsWith('/test-cases')
+          ? '/test-cases'
+          : location.pathname
 
   return (
     <Layout style={{ minHeight: '100vh', background: 'transparent' }}>
@@ -122,6 +124,7 @@ export default function AppLayout({ children, onLogout }: Props) {
           }}
           items={[
             { key: '/', icon: '📋', label: '测试批次列表' },
+            { key: '/test-cases', icon: '🧪', label: '测试用例管理' },
             { key: '/http', icon: '🌐', label: 'HTTP请求' },
           ]}
         />

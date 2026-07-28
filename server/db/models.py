@@ -38,3 +38,13 @@ class CaseRun(Base):
     created_at = Column(DateTime, default=func.now())
 
     batch = relationship("TestBatch", back_populates="cases")
+
+# ---------- 测试用例管理表 ----------
+class TestCase(Base):
+    __tablename__ = "test_cases"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), unique=True, nullable=False)
+    script_content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

@@ -725,3 +725,26 @@ body {
 .report-stat .ant-statistic-title {
   color: #f1f5f9 !important;
 }
+
+/* ==================== 测试用例管理页暗色适配 ==================== */
+.tc-page-input .ant-input-affix-wrapper,
+.tc-page-input .ant-input {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border-color: rgba(148, 163, 184, 0.15) !important;
+  color: #e2e8f0 !important;
+  border-radius: 8px !important;
+}
+
+.tc-page-input .ant-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.tc-page-input .ant-input-affix-wrapper:focus-within,
+.tc-page-input .ant-input:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15) !important;
+}
+
+.tc-page-input .ant-input-affix-wrapper .ant-input-prefix {
+  color: #94a3b8;
+}
