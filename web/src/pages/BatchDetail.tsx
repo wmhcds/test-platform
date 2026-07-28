@@ -35,10 +35,11 @@ export default function BatchDetail() {
     try {
       const src = await api.getCaseSource(record.case_path, record.case_name)
       setCaseModal((prev) => ({ ...prev, source: src.source, sourceLoading: false }))
-    } catch {
+    } catch (e: any) {
+      console.error('加载用例源码失败:', e?.response?.data?.detail || e?.message || e)
       setCaseModal((prev) => ({
         ...prev,
-        source: '// 源码加载失败',
+        source: `// 源码加载失败: ${e?.response?.data?.detail || e?.message || '未知错误'}`,
         sourceLoading: false,
       }))
     }

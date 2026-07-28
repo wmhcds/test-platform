@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Table, Button, Space, Tag, message, Card, Tooltip, Carousel, Row, Col, Statistic } from 'antd'
+import { Table, Button, Space, Tag, message, Card, Tooltip, Carousel, Row, Col, Statistic, Modal } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import {
   ReloadOutlined,
@@ -9,6 +9,7 @@ import {
   ThunderboltOutlined,
   ExperimentOutlined,
   RedoOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons'
 import api, { BatchSummary } from '../api/client'
 
@@ -100,6 +101,25 @@ export default function BatchList() {
       .finally(() => setTimeout(() => setRerunId(null), 1000))
   }
 
+  const handleDelete = (id: number) => {
+    Modal.confirm({
+      title: '确认删除批次？',
+      content: '删除后该批次及其用例执行记录将无法恢复。',
+      okText: '确认删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await api.deleteBatch(id)
+          message.success('批次已删除')
+          load()
+        } catch {
+          message.error('删除批次失败')
+        }
+      },
+    })
+  }
+
   // 统计数据
   const stats = data.reduce(
     (acc, item) => ({
@@ -184,6 +204,15 @@ export default function BatchList() {
             onClick={() => handleRerun(row.id)}
           >
             重新执行
+          </Button>
+          <Button
+            type="link"
+            danger
+            className="action-btn"
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(row.id)}
+          >
+            删除
           </Button>
         </Space>
       ),

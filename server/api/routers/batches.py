@@ -19,6 +19,68 @@ def get_db():
         yield db
 
 
+# ---- 静态路由必须在参数化路由之前定义，避免 FastAPI 路由匹配冲突 ----
+
+@router.get("/case/source")
+def get_case_source(case_path: str, case_name: str):
+    """根据文件路径和函数名，返回用例源码（含行号）。"""
+    file_path = Path(case_path)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"文件不存在: {case_path}")
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"读取文件失败: {e}")
+
+    # 查找目标函数的起止行号
+    start_line = -1
+    end_line = len(lines)
+    indent_level = 0
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if start_line == -1 and (stripped.startswith(f"def {case_name}(") or
+                                   stripped.startswith(f"async def {case_name}(")):
+            start_line = i + 1  # 1-based 行号
+            indent_level = len(line) - len(line.lstrip())
+            continue
+        if start_line != -1 and stripped:
+            cur_indent = len(line) - len(line.lstrip())
+            if cur_indent <= indent_level and stripped:
+                end_line = i  # 函数结束（遇到同级或更小缩进的非空行）
+                break
+
+    if start_line == -1:
+        raise HTTPException(status_code=404, detail=f"未找到函数: {case_name}")
+
+    func_lines = lines[start_line - 1:end_line]
+    source_with_numbers = []
+    for idx, code_line in enumerate(func_lines, start=start_line):
+        source_with_numbers.append(f"{idx:>4}: {code_line}",)
+
+    return {
+        "case_name": case_name,
+        "file_path": str(file_path),
+        "start_line": start_line,
+        "source": "".join(source_with_numbers),
+    }
+
+
+@router.delete("/{batch_id}")
+def delete_batch(batch_id: int, db: Session = Depends(get_db)):
+    """删除指定批次及其关联的用例执行记录。"""
+    b = db.query(TestBatch).filter(TestBatch.id == batch_id).first()
+    if not b:
+        raise HTTPException(status_code=404, detail="批次不存在")
+
+    # 先删除关联的 case_runs（无外键级联配置时避免完整性错误）
+    db.query(CaseRun).filter(CaseRun.batch_id == batch_id).delete(synchronize_session=False)
+    db.delete(b)
+    db.commit()
+    return {"ok": True, "message": "批次已删除"}
+
+
 @router.post("/{batch_id}/rerun")
 async def rerun_batch(batch_id: int, background: BackgroundTasks, db: Session = Depends(get_db)):
     """重新执行指定批次：提取该批次下的用例文件，后台重跑 pytest。"""
@@ -117,50 +179,4 @@ def get_report(batch_id: int, db: Session = Depends(get_db)):
         "failed": stats["failed"],
         "rate": stats["rate"],
         "failed_cases": failed_cases,
-    }
-
-
-@router.get("/case/source")
-def get_case_source(case_path: str, case_name: str):
-    """根据文件路径和函数名，返回用例源码（含行号）。"""
-    file_path = Path(case_path)
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail=f"文件不存在: {case_path}")
-
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"读取文件失败: {e}")
-
-    # 查找目标函数的起止行号
-    start_line = -1
-    end_line = len(lines)
-    indent_level = 0
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        if start_line == -1 and (stripped.startswith(f"def {case_name}(") or
-                                   stripped.startswith(f"async def {case_name}(")):
-            start_line = i + 1  # 1-based 行号
-            indent_level = len(line) - len(line.lstrip())
-            continue
-        if start_line != -1 and stripped:
-            cur_indent = len(line) - len(line.lstrip())
-            if cur_indent <= indent_level and stripped:
-                end_line = i  # 函数结束（遇到同级或更小缩进的非空行）
-                break
-
-    if start_line == -1:
-        raise HTTPException(status_code=404, detail=f"未找到函数: {case_name}")
-
-    func_lines = lines[start_line - 1:end_line]
-    source_with_numbers = []
-    for idx, code_line in enumerate(func_lines, start=start_line):
-        source_with_numbers.append(f"{idx:>4}: {code_line}",)
-
-    return {
-        "case_name": case_name,
-        "file_path": str(file_path),
-        "start_line": start_line,
-        "source": "".join(source_with_numbers),
     }

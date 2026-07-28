@@ -60,6 +60,8 @@ export const api = {
     http
       .get<CaseSourceData>('/batches/case/source', { params: { case_path: casePath, case_name: caseName } })
       .then((r) => r.data),
+  deleteBatch: (id: number) =>
+    http.delete(`/batches/${id}`).then((r) => r.data),
   runTests: () => http.post('/run-tests').then((r) => r.data),
   rerunBatch: (id: number) =>
     http.post(`/batches/${id}/rerun`).then((r) => r.data),

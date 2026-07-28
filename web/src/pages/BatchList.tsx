@@ -11,6 +11,7 @@ import {
   ExperimentOutlined,
   RedoOutlined,
   SelectOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons'
 import api, { BatchSummary, TestCaseData, TestCaseCategoryData } from '../api/client'
 
@@ -191,6 +192,25 @@ export default function BatchList() {
       .finally(() => setTimeout(() => setRerunId(null), 1000))
   }
 
+  const handleDelete = (id: number) => {
+    Modal.confirm({
+      title: '确认删除批次？',
+      content: '删除后该批次及其用例执行记录将无法恢复。',
+      okText: '确认删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await api.deleteBatch(id)
+          message.success('批次已删除')
+          load()
+        } catch {
+          message.error('删除批次失败')
+        }
+      },
+    })
+  }
+
   const stats = data.reduce(
     (acc, item) => ({ total: acc.total + (item.total_cases ?? 0), passed: acc.passed + (item.passed ?? 0), failed: acc.failed + (item.failed ?? 0) }),
     { total: 0, passed: 0, failed: 0 },
@@ -216,6 +236,8 @@ export default function BatchList() {
           <Button type="link" className="action-btn" onClick={() => navigate(`/report/${row.id}`)}>查看报告</Button>
           <Button type="link" className="action-btn rerun-btn" icon={<RedoOutlined />}
             loading={rerunId === row.id} onClick={() => handleRerun(row.id)}>重新执行</Button>
+          <Button type="link" danger className="action-btn" icon={<DeleteOutlined />}
+            onClick={() => handleDelete(row.id)}>删除</Button>
         </Space>
       ),
     },
