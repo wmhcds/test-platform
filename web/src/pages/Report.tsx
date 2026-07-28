@@ -78,6 +78,36 @@ export default function Report() {
         )}
       </Card>
 
+      <Card
+        type="inner"
+        title="成功用例"
+        headStyle={{ background: '#0f172a', color: '#f1f5f9', borderBottom: '1px solid rgba(148,163,184,0.15)' }}
+        bodyStyle={{ background: '#1e293b' }}
+        style={{
+          marginBottom: 16,
+          background: '#1e293b',
+          border: '1px solid rgba(148,163,184,0.15)',
+        }}
+      >
+        {data.passed_cases.length === 0 ? (
+          <span style={{ color: '#ef4444' }}>无成功用例</span>
+        ) : (
+          <List
+            size="small"
+            dataSource={data.passed_cases}
+            renderItem={(item) => (
+              <List.Item style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                <span style={{ flex: 1, color: '#f1f5f9' }}>{item.case_name}</span>
+                <span style={{ flex: 1, color: '#cbd5e1', textAlign: 'center' }}>{item.case_path}</span>
+                <span style={{ flex: 1, textAlign: 'right' }}>
+                  <Tag color="green">✅ {item.status}</Tag>
+                </span>
+              </List.Item>
+            )}
+          />
+        )}
+      </Card>
+
       <Button onClick={() => navigate(`/batch/${data.id}`)}>返回详情</Button>
     </Card>
   )

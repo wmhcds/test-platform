@@ -339,6 +339,11 @@ def get_report(batch_id: int, db: Session = Depends(get_db)):
         "case_path": c.case_path,
         "status": c.status,
     } for c in case_runs if c.status == "failed"]
+    passed_cases = [{
+        "case_name": c.case_name,
+        "case_path": c.case_path,
+        "status": c.status,
+    } for c in case_runs if c.status == "passed"]
 
     return {
         "id": b.id,
@@ -350,4 +355,5 @@ def get_report(batch_id: int, db: Session = Depends(get_db)):
         "failed": stats["failed"],
         "rate": stats["rate"],
         "failed_cases": failed_cases,
+        "passed_cases": passed_cases,
     }

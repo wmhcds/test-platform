@@ -65,6 +65,7 @@ export interface ReportData {
   failed: number
   rate: string
   failed_cases: { case_name: string; case_path: string; status: string }[]
+  passed_cases: { case_name: string; case_path: string; status: string }[]
 }
 
 export interface CaseSourceData {
