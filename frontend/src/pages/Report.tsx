@@ -23,7 +23,7 @@ export default function Report() {
   if (!data) return <Card>批次不存在</Card>
 
   return (
-    <Card title={`测试报告 - 批次 #${data.id}`}>
+    <Card title={<span><span style={{ color: '#888', fontSize: 12, marginRight: 6, fontFamily: 'monospace' }}>00003#</span>测试报告 - 批次 #{data.id}</span>}>
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
           <Statistic title="总数" value={data.total} />

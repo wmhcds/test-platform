@@ -24,7 +24,7 @@ export default function Report() {
 
   return (
     <Card
-      title={`测试报告 - 批次 #${data.id}`}
+      title={<span><span style={{ color: '#64748b', fontSize: 12, marginRight: 6, fontFamily: 'monospace' }}>00003#</span>测试报告 - 批次 #{data.id}</span>}
       headStyle={{ background: '#1e293b', color: '#f1f5f9', borderBottom: '1px solid rgba(148,163,184,0.15)' }}
       bodyStyle={{ background: '#1e293b' }}
       style={{

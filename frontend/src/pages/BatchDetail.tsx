@@ -137,7 +137,7 @@ export default function BatchDetail() {
   ]
 
   return (
-    <Card title={`批次 #${dataAny.id} (${dataAny.batch_name})`}>
+    <Card title={<span><span style={{ color: '#888', fontSize: 12, marginRight: 6, fontFamily: 'monospace' }}>00002#</span>批次 #{dataAny.id} ({dataAny.batch_name})</span>}>
       <Descriptions bordered column={2} style={{ marginBottom: 16 }}>
         <Descriptions.Item label="开始时间">
           {dataAny.start_time || '-'}

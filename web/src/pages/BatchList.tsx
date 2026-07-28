@@ -345,7 +345,7 @@ export default function BatchList() {
 
       <Card
         className="batch-table-card"
-        title={<span className="card-title-text"><RocketOutlined /> 测试批次列表</span>}
+        title={<span className="card-title-text"><span style={{ color: '#64748b', fontSize: 12, marginRight: 6, fontFamily: 'monospace' }}>00001#</span><RocketOutlined /> 测试批次列表</span>}
         extra={
           <Space>
             <span style={{ color: '#e2e8f0', fontSize: 12 }}>

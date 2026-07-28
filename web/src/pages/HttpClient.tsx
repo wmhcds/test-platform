@@ -171,7 +171,7 @@ export default function HttpClient() {
       <Card
         title={
           <span className="card-title-text">
-            🌐 HTTP 请求测试
+            <span style={{ color: '#64748b', fontSize: 12, marginRight: 6, fontFamily: 'monospace' }}>00005#</span>🌐 HTTP 请求测试
           </span>
         }
         className="http-client-card"

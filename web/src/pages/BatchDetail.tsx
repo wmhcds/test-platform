@@ -144,7 +144,7 @@ export default function BatchDetail() {
 
   return (
     <Card
-      title={`批次 #${dataAny.id} (${dataAny.batch_name})`}
+      title={<span><span style={{ color: '#64748b', fontSize: 12, marginRight: 6, fontFamily: 'monospace' }}>00002#</span>批次 #{dataAny.id} ({dataAny.batch_name})</span>}
       headStyle={{ background: '#1e293b', color: '#f1f5f9', borderBottom: '1px solid rgba(148,163,184,0.15)' }}
       bodyStyle={{ background: '#1e293b' }}
       style={cardBodyStyle}

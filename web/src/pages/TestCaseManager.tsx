@@ -267,15 +267,18 @@ export default function TestCaseManager() {
       {/* ======= 右侧主区域 ======= */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-          <Input
-            className="tc-page-input"
-            placeholder="搜索用例名称..."
-            prefix={<SearchOutlined />}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            allowClear
-            style={{ width: 280 }}
-          />
+          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ color: '#64748b', fontSize: 12, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>00004#</span>
+            <Input
+              className="tc-page-input"
+              placeholder="搜索用例名称..."
+              prefix={<SearchOutlined />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              allowClear
+              style={{ width: 280 }}
+            />
+          </span>
           <Space>
             <Button icon={<ThunderboltOutlined />} onClick={handleBatchExecute} loading={batchExecuting}
               disabled={selectedIds.length === 0} className="btn-float-primary">
