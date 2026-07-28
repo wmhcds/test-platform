@@ -22,7 +22,7 @@ def db_session():
         db.close()
 
 
-def cleanup_old_batches(keep: int = 200) -> int:
+def cleanup_old_batches(keep: int = 10) -> int:
     """删除最旧的批次，保留最新的 keep 条。
 
     先删子表 case_runs，再删父表 test_batches。
