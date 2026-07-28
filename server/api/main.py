@@ -122,14 +122,14 @@ def on_startup():
     except Exception as e:
         logger.warning(f"COS sync not started: {e}")
 
-    # 后台线程：每 5 分钟检查并清理超过 10 条旧批次（测试中，后续改回 200）
+    # 后台线程：每 5 分钟检查并清理超过 500 条旧批次
     def _auto_cleanup():
-        logger.info("Auto cleanup daemon started (keep=10)")
+        logger.info("Auto cleanup daemon started (keep=500)")
         while True:
             time.sleep(300)
             try:
                 from utils.db_utils import cleanup_old_batches
-                cleanup_old_batches(keep=10)
+                cleanup_old_batches(keep=500)
             except Exception as e:
                 logger.error(f"Auto cleanup error: {e}")
 

@@ -46,10 +46,10 @@ def pytest_sessionfinish(session, exitstatus):
                 batch.end_time = datetime.datetime.now(UTC)
                 db.commit()
 
-    # 执行完成后：清理旧批次（保留 200 条）+ 备份到 COS
+    # 执行完成后：清理旧批次（保留 500 条）+ 备份到 COS
     try:
         from utils.db_utils import cleanup_old_batches
-        cleanup_old_batches(keep=10)
+        cleanup_old_batches(keep=500)
     except Exception as e:
         print(f"[cleanup] failed: {e}")
 
