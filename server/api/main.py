@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from api.routers import batches, runner, http_proxy, auth, test_cases
+from api.routers import batches, runner, http_proxy, auth, test_cases, config
 
 # 确保 server 目录在 sys.path
 _ROOT = Path(__file__).resolve().parent.parent
@@ -41,6 +41,7 @@ app.include_router(runner.router)
 app.include_router(http_proxy.router)
 app.include_router(auth.router)
 app.include_router(test_cases.router)
+app.include_router(config.router)
 
 # ---- 登录校验中间件 ----
 PUBLIC_PATHS = {"/api/auth/login", "/api/health"}

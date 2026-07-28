@@ -39,12 +39,32 @@ class CaseRun(Base):
 
     batch = relationship("TestBatch", back_populates="cases")
 
+# ---------- 测试用例目录表 ----------
+class TestCaseCategory(Base):
+    __tablename__ = "test_case_categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), unique=True, nullable=False)
+    created_at = Column(DateTime, default=func.now())
+
+    cases = relationship("TestCase", back_populates="category")
+
 # ---------- 测试用例管理表 ----------
 class TestCase(Base):
     __tablename__ = "test_cases"
 
     id = Column(Integer, primary_key=True, index=True)
+    category_id = Column(Integer, ForeignKey("test_case_categories.id"), nullable=True)
     name = Column(String(255), unique=True, nullable=False)
     script_content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    category = relationship("TestCaseCategory", back_populates="cases")
+
+# ---------- 平台配置表 ----------
+class PlatformConfig(Base):
+    __tablename__ = "platform_config"
+
+    key = Column(String(100), primary_key=True)
+    value = Column(Text, default="")

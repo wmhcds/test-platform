@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Table, Button, Space, Tag, message, Card, Tooltip, Carousel, Row, Col, Statistic } from 'antd'
+import { Table, Button, Space, Tag, message, Card, Tooltip, Carousel, Row, Col, Statistic, Modal, Checkbox } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import {
   ReloadOutlined,
@@ -9,8 +9,9 @@ import {
   ThunderboltOutlined,
   ExperimentOutlined,
   RedoOutlined,
+  SelectOutlined,
 } from '@ant-design/icons'
-import api, { BatchSummary } from '../api/client'
+import api, { BatchSummary, TestCaseData } from '../api/client'
 
 const carouselSlides = [
   {
@@ -46,67 +47,100 @@ export default function BatchList() {
   const [current, setCurrent] = useState(1)
   const navigate = useNavigate()
 
+  // 用例选择
+  const [selectModalOpen, setSelectModalOpen] = useState(false)
+  const [allCases, setAllCases] = useState<TestCaseData[]>([])
+  const [selectedCaseIds, setSelectedCaseIds] = useState<number[]>([])
+  const [selectLoading, setSelectLoading] = useState(false)
+  const [selectSaving, setSelectSaving] = useState(false)
+
   const load = () => {
     setLoading(true)
-    api
-      .listBatches()
-      .then(setData)
-      .catch(() => message.error('加载批次失败'))
-      .finally(() => setLoading(false))
+    api.listBatches().then(setData).catch(() => message.error('加载批次失败')).finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  // 加载已保存的用例选择配置
+  const loadSelection = () => {
+    api.getConfig('selected_case_ids').then((cfg) => {
+      if (cfg.value) {
+        try { setSelectedCaseIds(JSON.parse(cfg.value)) } catch { /* ignore */ }
+      }
+    }).catch(() => {})
+  }
+
+  useEffect(() => { load(); loadSelection() }, [])
+
+  const openSelectModal = () => {
+    setSelectLoading(true)
+    setSelectModalOpen(true)
+    api.listTestCases().then((cases) => {
+      setAllCases(cases)
+    }).catch(() => message.error('加载用例失败')).finally(() => setSelectLoading(false))
+  }
+
+  const handleSelectSave = async () => {
+    setSelectSaving(true)
+    try {
+      await api.setConfig('selected_case_ids', JSON.stringify(selectedCaseIds))
+      message.success(`已保存，选中 ${selectedCaseIds.length} 个用例`)
+      setSelectModalOpen(false)
+    } catch { message.error('保存失败') }
+    finally { setSelectSaving(false) }
+  }
 
   const handleRun = () => {
-    setRunning(true)
-    api
-      .runTests()
-      .then(() => {
-        message.success('测试已触发，执行完成后自动刷新')
-        // 记录触发前的批次数，用于判断是否有新批次产生
-        api.listBatches().then((batches) => {
-          const prevCount = batches.length
-          let pollTimer: ReturnType<typeof setInterval>
-          let elapsed = 0
-          setPolling(true)
-          pollTimer = setInterval(() => {
-            elapsed += 3
-            api
-              .listBatches()
-              .then((newBatches) => {
-                if (newBatches.length > prevCount || elapsed >= 120) {
-                  clearInterval(pollTimer)
-                  setPolling(false)
-                  setRunning(false)
-                  setData(newBatches)
-                }
-              })
-              .catch(() => {})
-          }, 3000)
+    // 如果有选中的用例，使用选中的用例执行；否则使用传统的 pytest 执行
+    if (selectedCaseIds.length > 0) {
+      setRunning(true)
+      setPolling(true)
+      api.batchExecute(selectedCaseIds, `自动批次_${new Date().toISOString().slice(0, 10)}`)
+        .then((result) => {
+          message.success(`批次 "${result.batch_name}" 执行完成：${result.passed} 通过, ${result.failed} 失败`)
+          setPolling(false)
+          setRunning(false)
+          load()
         })
+        .catch(() => {
+          message.error('执行失败')
+          setPolling(false)
+          setRunning(false)
+        })
+      return
+    }
+
+    // 传统 pytest 模式（兜底）
+    setRunning(true)
+    api.runTests().then(() => {
+      message.success('测试已触发，执行完成后自动刷新')
+      api.listBatches().then((batches) => {
+        const prevCount = batches.length
+        let pollTimer: ReturnType<typeof setInterval>
+        let elapsed = 0
+        setPolling(true)
+        pollTimer = setInterval(() => {
+          elapsed += 3
+          api.listBatches().then((newBatches) => {
+            if (newBatches.length > prevCount || elapsed >= 120) {
+              clearInterval(pollTimer)
+              setPolling(false)
+              setRunning(false)
+              setData(newBatches)
+            }
+          }).catch(() => {})
+        }, 3000)
       })
-      .catch(() => {
-        message.error('触发失败')
-        setRunning(false)
-      })
+    }).catch(() => { message.error('触发失败'); setRunning(false) })
   }
 
   const handleRerun = (id: number) => {
     setRerunId(id)
-    api
-      .rerunBatch(id)
-      .then(() => message.success('该批次已重新触发执行，完成后请刷新'))
+    api.rerunBatch(id).then(() => message.success('该批次已重新触发执行，完成后请刷新'))
       .catch(() => message.error('重新执行失败'))
       .finally(() => setTimeout(() => setRerunId(null), 1000))
   }
 
-  // 统计数据
   const stats = data.reduce(
-    (acc, item) => ({
-      total: acc.total + (item.total_cases ?? 0),
-      passed: acc.passed + (item.passed ?? 0),
-      failed: acc.failed + (item.failed ?? 0),
-    }),
+    (acc, item) => ({ total: acc.total + (item.total_cases ?? 0), passed: acc.passed + (item.passed ?? 0), failed: acc.failed + (item.failed ?? 0) }),
     { total: 0, passed: 0, failed: 0 },
   )
   const overallRate = stats.total > 0 ? ((stats.passed / stats.total) * 100).toFixed(1) : '0.0'
@@ -114,77 +148,22 @@ export default function BatchList() {
   const columns = [
     { title: '批次ID', dataIndex: 'id', key: 'id', width: 90 },
     { title: '批次名称', dataIndex: 'batch_name', key: 'batch_name' },
+    { title: '开始时间', dataIndex: 'start_time', key: 'start_time', render: (v: string | null) => v || '-' },
+    { title: '总数', dataIndex: 'total_cases', key: 'total_cases', width: 80, render: (v: number) => v ?? 0 },
+    { title: '通过', dataIndex: 'passed', key: 'passed', width: 80,
+      render: (v: number) => <Tag color="green" className="tech-tag">{v ?? 0}</Tag> },
+    { title: '失败', dataIndex: 'failed', key: 'failed', width: 80,
+      render: (v: number) => <Tag color="red" className="tech-tag">{v ?? 0}</Tag> },
+    { title: '通过率', dataIndex: 'rate', key: 'rate', width: 100,
+      render: (v: string) => <span className="rate-text">{v}</span> },
     {
-      title: '开始时间',
-      dataIndex: 'start_time',
-      key: 'start_time',
-      render: (v: string | null) => v || '-',
-    },
-    {
-      title: '总数',
-      dataIndex: 'total_cases',
-      key: 'total_cases',
-      width: 80,
-      render: (v: number) => v ?? 0,
-    },
-    {
-      title: '通过',
-      dataIndex: 'passed',
-      key: 'passed',
-      width: 80,
-      render: (v: number) => (
-        <Tag color="green" className="tech-tag">
-          {v ?? 0}
-        </Tag>
-      ),
-    },
-    {
-      title: '失败',
-      dataIndex: 'failed',
-      key: 'failed',
-      width: 80,
-      render: (v: number) => (
-        <Tag color="red" className="tech-tag">
-          {v ?? 0}
-        </Tag>
-      ),
-    },
-    {
-      title: '通过率',
-      dataIndex: 'rate',
-      key: 'rate',
-      width: 100,
-      render: (v: string) => <span className="rate-text">{v}</span>,
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 200,
+      title: '操作', key: 'action', width: 200,
       render: (_: unknown, row: BatchSummary) => (
         <Space size={8}>
-          <Button
-            type="link"
-            className="action-btn"
-            onClick={() => navigate(`/batch/${row.id}`)}
-          >
-            查看详情
-          </Button>
-          <Button
-            type="link"
-            className="action-btn"
-            onClick={() => navigate(`/report/${row.id}`)}
-          >
-            查看报告
-          </Button>
-          <Button
-            type="link"
-            className="action-btn rerun-btn"
-            icon={<RedoOutlined />}
-            loading={rerunId === row.id}
-            onClick={() => handleRerun(row.id)}
-          >
-            重新执行
-          </Button>
+          <Button type="link" className="action-btn" onClick={() => navigate(`/batch/${row.id}`)}>查看详情</Button>
+          <Button type="link" className="action-btn" onClick={() => navigate(`/report/${row.id}`)}>查看报告</Button>
+          <Button type="link" className="action-btn rerun-btn" icon={<RedoOutlined />}
+            loading={rerunId === row.id} onClick={() => handleRerun(row.id)}>重新执行</Button>
         </Space>
       ),
     },
@@ -192,15 +171,12 @@ export default function BatchList() {
 
   return (
     <div className="batch-list-page">
-      {/* ====== 轮播图区域 ====== */}
       <Carousel autoplay dots={{ className: 'carousel-dots' }} className="hero-carousel" autoplaySpeed={4000}>
         {carouselSlides.map((slide, idx) => (
           <div key={idx} className="carousel-slide" style={{ background: slide.gradient }}>
             <div className="slide-content">
               <div className="slide-left">
-                <div className="slide-icon" style={{ color: slide.accent }}>
-                  {slide.icon}
-                </div>
+                <div className="slide-icon" style={{ color: slide.accent }}>{slide.icon}</div>
                 <h1 className="slide-title">{slide.title}</h1>
                 <p className="slide-desc">{slide.desc}</p>
               </div>
@@ -215,103 +191,108 @@ export default function BatchList() {
         ))}
       </Carousel>
 
-      {/* ====== 统计卡片 ====== */}
       <Row gutter={[16, 16]} className="stats-row">
         <Col xs={24} sm={12} md={6}>
           <Card className="stat-card stat-total" bordered={false}>
-            <Statistic
-              title={<span className="stat-label">总批次数</span>}
-              value={data.length}
-              prefix={<ExperimentOutlined />}
-              valueStyle={{ color: '#00e5ff' }}
-            />
+            <Statistic title={<span className="stat-label">总批次数</span>} value={data.length}
+              prefix={<ExperimentOutlined />} valueStyle={{ color: '#00e5ff' }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
           <Card className="stat-card stat-passed" bordered={false}>
-            <Statistic
-              title={<span className="stat-label">总通过数</span>}
-              value={stats.passed}
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#10b981' }}
-            />
+            <Statistic title={<span className="stat-label">总通过数</span>} value={stats.passed}
+              prefix={<CheckCircleOutlined />} valueStyle={{ color: '#10b981' }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
           <Card className="stat-card stat-failed" bordered={false}>
-            <Statistic
-              title={<span className="stat-label">总失败数</span>}
-              value={stats.failed}
-              valueStyle={{ color: '#ef4444' }}
-            />
+            <Statistic title={<span className="stat-label">总失败数</span>} value={stats.failed}
+              valueStyle={{ color: '#ef4444' }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
           <Card className="stat-card stat-rate" bordered={false}>
-            <Statistic
-              title={<span className="stat-label">整体通过率</span>}
-              value={overallRate}
-              suffix="%"
-              precision={1}
-              valueStyle={{ color: '#7c3aed' }}
-            />
+            <Statistic title={<span className="stat-label">整体通过率</span>} value={overallRate}
+              suffix="%" precision={1} valueStyle={{ color: '#7c3aed' }} />
           </Card>
         </Col>
       </Row>
 
-      {/* ====== 数据表格 ====== */}
       <Card
         className="batch-table-card"
-        title={
-          <span className="card-title-text">
-            <RocketOutlined /> 测试批次列表
-          </span>
-        }
+        title={<span className="card-title-text"><RocketOutlined /> 测试批次列表</span>}
         extra={
           <Space>
-            <Button
-              type="primary"
-              icon={<PlayCircleOutlined />}
-              loading={running || polling}
-              onClick={handleRun}
-              className="run-all-btn"
-            >
+            <Button icon={<SelectOutlined />} onClick={openSelectModal} className="refresh-btn">
+              用例选择{selectedCaseIds.length > 0 ? ` (${selectedCaseIds.length})` : ''}
+            </Button>
+            <Button type="primary" icon={<PlayCircleOutlined />} loading={running || polling}
+              onClick={handleRun} className="run-all-btn">
               {polling ? '执行中...' : '一键执行全部用例'}
             </Button>
             <Tooltip title="刷新列表">
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={load}
-                loading={loading}
-                className="refresh-btn"
-              >
-                刷新
-              </Button>
+              <Button icon={<ReloadOutlined />} onClick={load} loading={loading} className="refresh-btn">刷新</Button>
             </Tooltip>
           </Space>
         }
       >
-        <Table
-          rowKey="id"
-          loading={loading}
-          columns={columns}
-          dataSource={data}
-          scroll={{ x: 800 }}
+        <Table rowKey="id" loading={loading} columns={columns} dataSource={data} scroll={{ x: 800 }}
           pagination={{
-            current,
-            pageSize,
-            showSizeChanger: true,
-            pageSizeOptions: ['10', '20', '50', '100'],
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
-            onChange: (page, size) => {
-              setCurrent(page)
-              setPageSize(size)
-            },
+            current, pageSize, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'],
+            showQuickJumper: true, showTotal: (total: number) => `共 ${total} 条`,
+            onChange: (page, size) => { setCurrent(page); setPageSize(size) },
           }}
           className="tech-table"
         />
       </Card>
+
+      {/* 用例选择弹窗 */}
+      <Modal
+        title="选择要执行的测试用例"
+        open={selectModalOpen}
+        onCancel={() => setSelectModalOpen(false)}
+        onOk={handleSelectSave}
+        confirmLoading={selectSaving}
+        okText="保存选择"
+        cancelText="取消"
+        width={700}
+        styles={{ content: { background: '#1e293b' }, header: { background: '#1e293b' } }}
+      >
+        <div style={{ color: '#94a3b8', marginBottom: 12 }}>
+          勾选需要执行的测试用例，保存后点击「一键执行全部用例」将只执行已勾选的用例。
+        </div>
+        {selectLoading ? (
+          <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>加载中...</div>
+        ) : allCases.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
+            暂无测试用例，请先在「测试用例管理」页面创建用例
+          </div>
+        ) : (
+          <div style={{ maxHeight: 400, overflow: 'auto' }}>
+            <Checkbox.Group
+              value={selectedCaseIds}
+              onChange={(vals) => setSelectedCaseIds(vals as number[])}
+              style={{ width: '100%' }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {allCases.map((c) => (
+                  <div key={c.id}
+                    style={{
+                      padding: '8px 12px', borderRadius: 6, background: '#0f172a',
+                      display: 'flex', alignItems: 'center', gap: 8,
+                    }}
+                  >
+                    <Checkbox value={c.id} />
+                    <span style={{ color: '#f1f5f9' }}>{c.name}</span>
+                    {c.category_name && <Tag color="blue" style={{ fontSize: 11 }}>{c.category_name}</Tag>}
+                    <span style={{ marginLeft: 'auto', color: '#64748b', fontSize: 12 }}>{c.script_content.length} 字符</span>
+                  </div>
+                ))}
+              </div>
+            </Checkbox.Group>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

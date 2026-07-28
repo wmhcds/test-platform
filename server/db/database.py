@@ -65,6 +65,8 @@ def init_db():
     DB_PATH = _get_sqlite_path()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+
+    # case_runs 补充列
     cursor.execute("PRAGMA table_info(case_runs)")
     existing_columns = {row[1] for row in cursor.fetchall()}
 
@@ -80,6 +82,13 @@ def init_db():
         if col_name not in existing_columns:
             cursor.execute(f"ALTER TABLE case_runs ADD COLUMN {col_name} {col_def}")
             print(f"  [OK] auto-add column: case_runs.{col_name}")
+
+    # test_cases 补充 category_id 列
+    cursor.execute("PRAGMA table_info(test_cases)")
+    tc_columns = {row[1] for row in cursor.fetchall()}
+    if "category_id" not in tc_columns:
+        cursor.execute("ALTER TABLE test_cases ADD COLUMN category_id INTEGER")
+        print("  [OK] auto-add column: test_cases.category_id")
 
     conn.commit()
     conn.close()
