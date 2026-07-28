@@ -47,10 +47,12 @@ export default function Report() {
             size="small"
             dataSource={data.failed_cases}
             renderItem={(item) => (
-              <List.Item>
-                <Tag color="red">❌ {item.status}</Tag>
-                <span style={{ marginRight: 8 }}>{item.case_name}</span>
-                <span style={{ color: '#cbd5e1' }}>{item.case_path}</span>
+              <List.Item style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                <span style={{ flex: 1 }}>{item.case_name}</span>
+                <span style={{ flex: 1, color: '#666', textAlign: 'center' }}>{item.case_path}</span>
+                <span style={{ flex: 1, textAlign: 'right' }}>
+                  <Tag color="red">❌ {item.status}</Tag>
+                </span>
               </List.Item>
             )}
           />
