@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
-import { Table, Button, Space, Tag, message, Card, Tooltip, Carousel, Row, Col, Statistic, Modal, Checkbox } from 'antd'
+import { useEffect, useState, useMemo } from 'react'
+import { Table, Button, Space, Tag, message, Card, Tooltip, Carousel, Row, Col, Statistic, Modal, Tree } from 'antd'
+import type { TreeProps } from 'antd/es/tree'
 import { useNavigate } from 'react-router-dom'
 import {
   ReloadOutlined,
@@ -11,7 +12,7 @@ import {
   RedoOutlined,
   SelectOutlined,
 } from '@ant-design/icons'
-import api, { BatchSummary, TestCaseData } from '../api/client'
+import api, { BatchSummary, TestCaseData, TestCaseCategoryData } from '../api/client'
 
 const carouselSlides = [
   {
@@ -50,6 +51,7 @@ export default function BatchList() {
   // 用例选择
   const [selectModalOpen, setSelectModalOpen] = useState(false)
   const [allCases, setAllCases] = useState<TestCaseData[]>([])
+  const [allCategories, setAllCategories] = useState<TestCaseCategoryData[]>([])
   const [selectedCaseIds, setSelectedCaseIds] = useState<number[]>([])
   const [selectLoading, setSelectLoading] = useState(false)
   const [selectSaving, setSelectSaving] = useState(false)
@@ -73,9 +75,59 @@ export default function BatchList() {
   const openSelectModal = () => {
     setSelectLoading(true)
     setSelectModalOpen(true)
-    api.listTestCases().then((cases) => {
-      setAllCases(cases)
-    }).catch(() => message.error('加载用例失败')).finally(() => setSelectLoading(false))
+    Promise.all([
+      api.listCategories().then((cats) => setAllCategories(cats)).catch(() => {}),
+      api.listTestCases().then((cases) => setAllCases(cases)).catch(() => message.error('加载用例失败')),
+    ]).finally(() => setSelectLoading(false))
+  }
+
+  const treeData = useMemo(() => {
+    const categorized = allCategories.map((cat) => {
+      const children = allCases
+        .filter((c) => c.category_id === cat.id)
+        .map((c) => ({
+          title: (
+            <span style={{ color: '#f1f5f9' }}>
+              {c.name}
+              <span style={{ marginLeft: 12, color: '#64748b', fontSize: 12 }}>{c.script_content.length} 字符</span>
+            </span>
+          ),
+          key: String(c.id),
+          isLeaf: true,
+        }))
+      return {
+        title: (
+          <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
+            {cat.name} <span style={{ color: '#64748b', fontWeight: 400 }}>({children.length})</span>
+          </span>
+        ),
+        key: `cat-${cat.id}`,
+        children,
+      }
+    })
+
+    const uncategorized = allCases
+      .filter((c) => !c.category_id)
+      .map((c) => ({
+        title: (
+          <span style={{ color: '#f1f5f9' }}>
+            {c.name}
+            <span style={{ marginLeft: 12, color: '#64748b', fontSize: 12 }}>{c.script_content.length} 字符</span>
+          </span>
+        ),
+        key: String(c.id),
+        isLeaf: true,
+      }))
+
+    return [...categorized, ...uncategorized]
+  }, [allCases, allCategories])
+
+  const handleTreeCheck: TreeProps['onCheck'] = (checkedKeysValue) => {
+    const keys = Array.isArray(checkedKeysValue) ? checkedKeysValue : checkedKeysValue.checked
+    const caseIds = keys
+      .filter((key) => !String(key).startsWith('cat-'))
+      .map((key) => Number(key))
+    setSelectedCaseIds(caseIds)
   }
 
   const handleSelectSave = async () => {
@@ -268,28 +320,17 @@ export default function BatchList() {
             暂无测试用例，请先在「测试用例管理」页面创建用例
           </div>
         ) : (
-          <div style={{ maxHeight: 400, overflow: 'auto' }}>
-            <Checkbox.Group
-              value={selectedCaseIds}
-              onChange={(vals) => setSelectedCaseIds(vals as number[])}
-              style={{ width: '100%' }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {allCases.map((c) => (
-                  <div key={c.id}
-                    style={{
-                      padding: '8px 12px', borderRadius: 6, background: '#0f172a',
-                      display: 'flex', alignItems: 'center', gap: 8,
-                    }}
-                  >
-                    <Checkbox value={c.id} />
-                    <span style={{ color: '#f1f5f9' }}>{c.name}</span>
-                    {c.category_name && <Tag color="blue" style={{ fontSize: 11 }}>{c.category_name}</Tag>}
-                    <span style={{ marginLeft: 'auto', color: '#64748b', fontSize: 12 }}>{c.script_content.length} 字符</span>
-                  </div>
-                ))}
-              </div>
-            </Checkbox.Group>
+          <div style={{ maxHeight: 420, overflow: 'auto', background: '#0f172a', borderRadius: 8, padding: '12px 8px' }}>
+            <Tree
+              checkable
+              defaultExpandAll
+              treeData={treeData}
+              checkedKeys={selectedCaseIds.map(String)}
+              onCheck={handleTreeCheck}
+              selectable={false}
+              showLine={{ showLeafIcon: false }}
+              style={{ color: '#94a3b8' }}
+            />
           </div>
         )}
       </Modal>
