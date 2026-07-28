@@ -1,5 +1,6 @@
 """批次相关接口：列表、详情、报告、用例源码。"""
 import inspect
+from datetime import timezone
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -12,6 +13,16 @@ from utils.stats_utils import summarize_cases
 from api.routers.runner import _run_tests
 
 router = APIRouter(prefix="/api/batches", tags=["batches"])
+UTC = timezone.utc
+
+
+def _to_iso(dt):
+    """序列化 datetime 为 ISO 8601 字符串，确保带 UTC 时区标记。"""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt.isoformat()
 
 
 def get_db():
@@ -158,8 +169,8 @@ def list_batches(db: Session = Depends(get_db)):
         result.append({
             "id": b.id,
             "batch_name": b.batch_name,
-            "start_time": b.start_time.isoformat() if b.start_time else None,
-            "end_time": b.end_time.isoformat() if b.end_time else None,
+            "start_time": _to_iso(b.start_time),
+            "end_time": _to_iso(b.end_time),
             "total_cases": b.total_cases,
             "passed": b.passed,
             "failed": b.failed,
@@ -193,8 +204,8 @@ def get_batch(batch_id: int, db: Session = Depends(get_db)):
     return {
         "id": b.id,
         "batch_name": b.batch_name,
-        "start_time": b.start_time.isoformat() if b.start_time else None,
-        "end_time": b.end_time.isoformat() if b.end_time else None,
+        "start_time": _to_iso(b.start_time),
+        "end_time": _to_iso(b.end_time),
         "total_cases": b.total_cases,
         "passed": b.passed,
         "failed": b.failed,
@@ -221,8 +232,8 @@ def get_report(batch_id: int, db: Session = Depends(get_db)):
     return {
         "id": b.id,
         "batch_name": b.batch_name,
-        "start_time": b.start_time.isoformat() if b.start_time else None,
-        "end_time": b.end_time.isoformat() if b.end_time else None,
+        "start_time": _to_iso(b.start_time),
+        "end_time": _to_iso(b.end_time),
         "total": stats["total"],
         "passed": stats["passed"],
         "failed": stats["failed"],

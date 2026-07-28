@@ -4,7 +4,7 @@ import sys
 import json
 import tempfile
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 from pathlib import Path
 from typing import Optional
@@ -291,13 +291,13 @@ def _run_single_script(name: str, script_content: str) -> dict:
         f.write(script_content)
         tmp_path = f.name
 
-    start = datetime.now()
+    start = datetime.now(timezone.utc)
     try:
         result = subprocess.run(
             [sys.executable, tmp_path],
             capture_output=True, text=True, timeout=60,
         )
-        duration = (datetime.now() - start).total_seconds()
+        duration = (datetime.now(timezone.utc) - start).total_seconds()
         passed = result.returncode == 0
         output = result.stdout
         if result.stderr:
@@ -313,11 +313,11 @@ def _run_single_script(name: str, script_content: str) -> dict:
             "error_message": "" if passed else (result.stderr or result.stdout)[:2000],
         }
     except subprocess.TimeoutExpired:
-        duration = (datetime.now() - start).total_seconds()
+        duration = (datetime.now(timezone.utc) - start).total_seconds()
         return {"ok": False, "case_name": name, "status": "failed",
                 "duration": round(duration, 2), "output": "执行超时（60秒）", "error_message": "执行超时（60秒）"}
     except Exception as e:
-        duration = (datetime.now() - start).total_seconds()
+        duration = (datetime.now(timezone.utc) - start).total_seconds()
         return {"ok": False, "case_name": name, "status": "failed",
                 "duration": round(duration, 2), "output": str(e), "error_message": str(e)}
     finally:
@@ -348,8 +348,8 @@ def batch_execute(body: BatchExecuteRequest):
         if not tcs:
             raise HTTPException(status_code=404, detail="未找到指定测试用例")
 
-        batch_name = body.batch_name.strip() or f"手动批次_{datetime.now():%Y%m%d_%H%M%S}"
-        batch = TestBatch(batch_name=batch_name, start_time=datetime.now())
+        batch_name = body.batch_name.strip() or f"手动批次_{datetime.now(timezone.utc):%Y%m%d_%H%M%S}"
+        batch = TestBatch(batch_name=batch_name, start_time=datetime.now(timezone.utc))
         db.add(batch)
         db.flush()
 
@@ -374,7 +374,7 @@ def batch_execute(body: BatchExecuteRequest):
         batch.total_cases = len(tcs)
         batch.passed = passed
         batch.failed = failed
-        batch.end_time = datetime.now()
+        batch.end_time = datetime.now(timezone.utc)
         db.commit()
         return {
             "ok": True, "batch_id": batch.id, "batch_name": batch_name,

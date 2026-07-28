@@ -252,7 +252,9 @@ export default function BatchList() {
       render: (v: string | null) => {
         if (!v) return '-'
         const d = new Date(v)
-        return isNaN(d.getTime()) ? v : d.toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-')
+        if (isNaN(d.getTime())) return v
+        const pad = (n: number) => String(n).padStart(2, '0')
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
       },
     },
     { title: '总数', dataIndex: 'total_cases', key: 'total_cases', width: 80, render: (v: number) => v ?? 0 },

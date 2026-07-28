@@ -5,6 +5,8 @@ from sqlalchemy import func
 from db.models import TestBatch, CaseRun
 from utils.db_utils import db_session
 
+UTC = datetime.timezone.utc
+
 # 全局变量，记录当前批次
 current_batch = None
 
@@ -13,8 +15,8 @@ def pytest_sessionstart(session):
     global current_batch
     with db_session() as db:
         batch = TestBatch(
-            batch_name=f"Run-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}",
-            start_time=datetime.datetime.now(),
+            batch_name=f"Run-{datetime.datetime.now(UTC).strftime('%Y%m%d%H%M%S')}",
+            start_time=datetime.datetime.now(UTC),
         )
         db.add(batch)
         db.commit()
@@ -41,7 +43,7 @@ def pytest_sessionfinish(session, exitstatus):
                         batch.failed = count
 
                 batch.total_cases = batch.passed + batch.failed
-                batch.end_time = datetime.datetime.now()
+                batch.end_time = datetime.datetime.now(UTC)
                 db.commit()
 
     # 执行完成后：清理旧批次（保留 200 条）+ 备份到 COS
