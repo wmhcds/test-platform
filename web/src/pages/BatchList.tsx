@@ -47,6 +47,7 @@ export default function BatchList() {
   const [polling, setPolling] = useState(false)
   const [pageSize, setPageSize] = useState(10)
   const [current, setCurrent] = useState(1)
+  const [selectedBatchIds, setSelectedBatchIds] = useState<number[]>([])
   const navigate = useNavigate()
 
   // 用例选择
@@ -211,6 +212,30 @@ export default function BatchList() {
     })
   }
 
+  const handleBatchDelete = () => {
+    if (selectedBatchIds.length === 0) {
+      message.warning('请先勾选要删除的批次')
+      return
+    }
+    Modal.confirm({
+      title: `确认删除选中的 ${selectedBatchIds.length} 个批次？`,
+      content: '删除后这些批次及其用例执行记录将无法恢复。',
+      okText: '确认删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await api.deleteBatches(selectedBatchIds)
+          message.success('批量删除成功')
+          setSelectedBatchIds([])
+          load()
+        } catch {
+          message.error('批量删除失败')
+        }
+      },
+    })
+  }
+
   const stats = data.reduce(
     (acc, item) => ({ total: acc.total + (item.total_cases ?? 0), passed: acc.passed + (item.passed ?? 0), failed: acc.failed + (item.failed ?? 0) }),
     { total: 0, passed: 0, failed: 0 },
@@ -220,7 +245,16 @@ export default function BatchList() {
   const columns = [
     { title: '批次ID', dataIndex: 'id', key: 'id', width: 90 },
     { title: '批次名称', dataIndex: 'batch_name', key: 'batch_name' },
-    { title: '开始时间', dataIndex: 'start_time', key: 'start_time', render: (v: string | null) => v || '-' },
+    {
+      title: '开始时间',
+      dataIndex: 'start_time',
+      key: 'start_time',
+      render: (v: string | null) => {
+        if (!v) return '-'
+        const d = new Date(v)
+        return isNaN(d.getTime()) ? v : d.toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-')
+      },
+    },
     { title: '总数', dataIndex: 'total_cases', key: 'total_cases', width: 80, render: (v: number) => v ?? 0 },
     { title: '通过', dataIndex: 'passed', key: 'passed', width: 80,
       render: (v: number) => <Tag color="green" className="tech-tag">{v ?? 0}</Tag> },
@@ -297,6 +331,14 @@ export default function BatchList() {
         title={<span className="card-title-text"><RocketOutlined /> 测试批次列表</span>}
         extra={
           <Space>
+            <span style={{ color: '#94a3b8', fontSize: 12 }}>
+              已选 {selectedBatchIds.length} 个批次
+            </span>
+            <Button size="small" onClick={() => setSelectedBatchIds(data.map((b) => b.id))}>全选</Button>
+            <Button size="small" onClick={() => setSelectedBatchIds([])}>取消全选</Button>
+            <Button danger size="small" icon={<DeleteOutlined />} onClick={handleBatchDelete}>
+              批量删除
+            </Button>
             <Button icon={<SelectOutlined />} onClick={openSelectModal} className="refresh-btn">
               用例选择{selectedCaseIds.length > 0 ? ` (${selectedCaseIds.length})` : ''}
             </Button>
@@ -310,7 +352,16 @@ export default function BatchList() {
           </Space>
         }
       >
-        <Table rowKey="id" loading={loading} columns={columns} dataSource={data} scroll={{ x: 800 }}
+        <Table
+          rowKey="id"
+          loading={loading}
+          columns={columns}
+          dataSource={data}
+          scroll={{ x: 800 }}
+          rowSelection={{
+            selectedRowKeys: selectedBatchIds,
+            onChange: (keys) => setSelectedBatchIds(keys as number[]),
+          }}
           pagination={{
             current, pageSize, showSizeChanger: true, pageSizeOptions: ['10', '20', '50', '100'],
             showQuickJumper: true, showTotal: (total: number) => `共 ${total} 条`,

@@ -45,6 +45,7 @@ export default function BatchList() {
   const [polling, setPolling] = useState(false)
   const [pageSize, setPageSize] = useState(10)
   const [current, setCurrent] = useState(1)
+  const [selectedBatchIds, setSelectedBatchIds] = useState<number[]>([])
   const navigate = useNavigate()
 
   const load = () => {
@@ -120,6 +121,30 @@ export default function BatchList() {
     })
   }
 
+  const handleBatchDelete = () => {
+    if (selectedBatchIds.length === 0) {
+      message.warning('请先勾选要删除的批次')
+      return
+    }
+    Modal.confirm({
+      title: `确认删除选中的 ${selectedBatchIds.length} 个批次？`,
+      content: '删除后这些批次及其用例执行记录将无法恢复。',
+      okText: '确认删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await api.deleteBatches(selectedBatchIds)
+          message.success('批量删除成功')
+          setSelectedBatchIds([])
+          load()
+        } catch {
+          message.error('批量删除失败')
+        }
+      },
+    })
+  }
+
   // 统计数据
   const stats = data.reduce(
     (acc, item) => ({
@@ -138,7 +163,11 @@ export default function BatchList() {
       title: '开始时间',
       dataIndex: 'start_time',
       key: 'start_time',
-      render: (v: string | null) => v || '-',
+      render: (v: string | null) => {
+        if (!v) return '-'
+        const d = new Date(v)
+        return isNaN(d.getTime()) ? v : d.toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-')
+      },
     },
     {
       title: '总数',
@@ -298,6 +327,18 @@ export default function BatchList() {
         }
         extra={
           <Space>
+            <span style={{ color: '#94a3b8', fontSize: 12 }}>
+              已选 {selectedBatchIds.length} 个批次
+            </span>
+            <Button size="small" onClick={() => setSelectedBatchIds(data.map((b) => b.id))}>
+              全选
+            </Button>
+            <Button size="small" onClick={() => setSelectedBatchIds([])}>
+              取消全选
+            </Button>
+            <Button danger size="small" icon={<DeleteOutlined />} onClick={handleBatchDelete}>
+              批量删除
+            </Button>
             <Button
               type="primary"
               icon={<PlayCircleOutlined />}
@@ -325,6 +366,10 @@ export default function BatchList() {
           loading={loading}
           columns={columns}
           dataSource={data}
+          rowSelection={{
+            selectedRowKeys: selectedBatchIds,
+            onChange: (keys) => setSelectedBatchIds(keys as number[]),
+          }}
           pagination={{
             current,
             pageSize,

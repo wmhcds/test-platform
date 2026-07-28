@@ -117,6 +117,8 @@ export const api = {
       .then((r) => r.data),
   deleteBatch: (id: number) =>
     http.delete(`/batches/${id}`).then((r) => r.data),
+  deleteBatches: (ids: number[]) =>
+    http.post('/batches/batch-delete', { ids }).then((r) => r.data),
   runTests: () => http.post('/run-tests').then((r) => r.data),
   rerunBatch: (id: number) =>
     http.post(`/batches/${id}/rerun`).then((r) => r.data),

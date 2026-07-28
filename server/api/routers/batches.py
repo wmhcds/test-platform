@@ -3,6 +3,7 @@ import inspect
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from db.models import TestBatch, CaseRun, TestCase
@@ -98,6 +99,10 @@ def get_case_source(case_path: str, case_name: str, db: Session = Depends(get_db
     }
 
 
+class BatchDeleteRequest(BaseModel):
+    ids: list[int]
+
+
 @router.delete("/{batch_id}")
 def delete_batch(batch_id: int, db: Session = Depends(get_db)):
     """删除指定批次及其关联的用例执行记录。"""
@@ -110,6 +115,19 @@ def delete_batch(batch_id: int, db: Session = Depends(get_db)):
     db.delete(b)
     db.commit()
     return {"ok": True, "message": "批次已删除"}
+
+
+@router.post("/batch-delete")
+def batch_delete(body: BatchDeleteRequest, db: Session = Depends(get_db)):
+    """批量删除批次及其关联的用例执行记录。"""
+    if not body.ids:
+        raise HTTPException(status_code=400, detail="请选择要删除的批次")
+
+    # 先删除关联的 case_runs，再删除批次
+    db.query(CaseRun).filter(CaseRun.batch_id.in_(body.ids)).delete(synchronize_session=False)
+    db.query(TestBatch).filter(TestBatch.id.in_(body.ids)).delete(synchronize_session=False)
+    db.commit()
+    return {"ok": True, "message": f"已删除 {len(body.ids)} 个批次"}
 
 
 @router.post("/{batch_id}/rerun")

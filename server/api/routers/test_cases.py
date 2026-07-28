@@ -349,7 +349,7 @@ def batch_execute(body: BatchExecuteRequest):
             raise HTTPException(status_code=404, detail="未找到指定测试用例")
 
         batch_name = body.batch_name.strip() or f"手动批次_{datetime.now():%Y%m%d_%H%M%S}"
-        batch = TestBatch(batch_name=batch_name)
+        batch = TestBatch(batch_name=batch_name, start_time=datetime.now())
         db.add(batch)
         db.flush()
 
