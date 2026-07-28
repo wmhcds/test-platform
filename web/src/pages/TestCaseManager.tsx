@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from 'react'
+import { useEffect, useState, lazy, Suspense, useCallback } from 'react'
 import {
   Card, Table, Button, Input, Modal, Space, message, Tag, Drawer,
   Typography, Popconfirm, Tooltip, Spin, Select,
@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import api, { TestCaseData, TestCaseCategoryData, ExecuteResultData } from '../api/client'
+import { registerPythonCompletions } from '../utils/pythonCompletions'
 
 const MonacoEditor = lazy(() => import('@monaco-editor/react'))
 
@@ -171,6 +172,11 @@ export default function TestCaseManager() {
     } catch { message.error('批量执行失败') }
     finally { setBatchExecuting(false) }
   }
+
+  // Monaco 加载前注册 Python 补全提供者
+  const handleMonacoBeforeMount = useCallback((monaco: any) => {
+    registerPythonCompletions(monaco)
+  }, [])
 
   const columns: ColumnsType<TestCaseData> = [
     {
@@ -337,6 +343,7 @@ export default function TestCaseManager() {
               <MonacoEditor
                 height="420px" language="python" theme="vs-dark"
                 value={editContent} onChange={(val) => setEditContent(val || '')}
+                beforeMount={handleMonacoBeforeMount}
                 loading={
                   <div style={{ height: 420, background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Spin tip="编辑器加载中..." />
