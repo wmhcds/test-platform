@@ -203,17 +203,15 @@ def get_batch(batch_id: int, db: Session = Depends(get_db)):
         "error_message": c.error_message or "",
     } for c in case_runs]
 
-    # 按文件夹归档分组
+    # 按测试用例目录（category_name）归档分组，与测试管理页面目录结构一致
     folders_map: dict[str, list] = defaultdict(list)
     for c in case_runs:
-        folder = os.path.dirname(c.case_path) if c.case_path else ''
-        if not folder:
-            folder = '(根目录)'
+        folder = c.category_name or '未分类'
         folders_map[folder].append(c)
 
-    # 文件夹按名称排序，根目录排最后
+    # 目录按名称排序，未分类排最后
     def _folder_sort_key(name: str) -> tuple:
-        return (1, name) if name == '(根目录)' else (0, name)
+        return (1, name) if name == '未分类' else (0, name)
 
     folders = []
     for folder_name in sorted(folders_map.keys(), key=_folder_sort_key):

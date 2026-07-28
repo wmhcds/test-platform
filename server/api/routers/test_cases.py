@@ -364,6 +364,8 @@ def batch_execute(body: BatchExecuteRequest):
                 status=result["status"],
                 duration=int(result["duration"] * 1000),
                 error_message=result.get("error_message", ""),
+                category_id=tc.category_id,
+                category_name=tc.category.name if tc.category else "未分类",
             )
             db.add(cr)
             if result["status"] == "passed":

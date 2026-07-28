@@ -69,7 +69,7 @@ export default function BatchDetail() {
 
   const columns = [
     {
-      title: '用例名称 / 文件夹',
+      title: '用例名称 / 目录',
       dataIndex: 'folder',
       key: 'name',
       render: (_: any, record: any) => {

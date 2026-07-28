@@ -77,6 +77,8 @@ def init_db():
         "skipped": "INTEGER DEFAULT 0",
         "report_url": "TEXT DEFAULT ''",
         "error_message": "TEXT DEFAULT ''",
+        "category_id": "INTEGER",
+        "category_name": "TEXT DEFAULT ''",
     }
     for col_name, col_def in new_columns.items():
         if col_name not in existing_columns:

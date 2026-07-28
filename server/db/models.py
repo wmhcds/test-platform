@@ -35,6 +35,8 @@ class CaseRun(Base):
     skipped = Column(Integer, default=0)
     report_url = Column(String(500), default="")
     error_message = Column(Text, default="")  # 失败用例的异常/断言信息
+    category_id = Column(Integer, nullable=True)  # 关联测试用例目录
+    category_name = Column(String(255), nullable=True)  # 执行时快照目录名称
     created_at = Column(DateTime, default=func.now())
 
     batch = relationship("TestBatch", back_populates="cases")
