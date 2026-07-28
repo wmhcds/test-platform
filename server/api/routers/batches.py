@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from db.models import TestBatch, CaseRun
+from db.models import TestBatch, CaseRun, TestCase
 from utils.db_utils import db_session
 from utils.stats_utils import summarize_cases
 from api.routers.runner import _run_tests
@@ -21,20 +21,8 @@ def get_db():
 
 # ---- 静态路由必须在参数化路由之前定义，避免 FastAPI 路由匹配冲突 ----
 
-@router.get("/case/source")
-def get_case_source(case_path: str, case_name: str):
-    """根据文件路径和函数名，返回用例源码（含行号）。"""
-    file_path = Path(case_path)
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail=f"文件不存在: {case_path}")
-
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"读取文件失败: {e}")
-
-    # 查找目标函数的起止行号
+def _extract_function_source(lines: list[str], case_name: str) -> tuple[int, list[str]]:
+    """从代码行列表中提取指定函数的起始行号和源码行。"""
     start_line = -1
     end_line = len(lines)
     indent_level = 0
@@ -47,18 +35,61 @@ def get_case_source(case_path: str, case_name: str):
             continue
         if start_line != -1 and stripped:
             cur_indent = len(line) - len(line.lstrip())
-            if cur_indent <= indent_level and stripped:
+            if cur_indent <= indent_level:
                 end_line = i  # 函数结束（遇到同级或更小缩进的非空行）
                 break
+    return start_line, lines[start_line - 1:end_line] if start_line != -1 else []
 
+
+@router.get("/case/source")
+def get_case_source(case_path: str, case_name: str, db: Session = Depends(get_db)):
+    """根据文件路径和函数名，返回用例源码（含行号）。
+
+    对于平台托管的用例（case_path 以 [managed]/ 开头），直接从数据库读取脚本内容。
+    """
+    # ---- 托管用例：从数据库读取脚本内容 ----
+    if case_path.startswith("[managed]/"):
+        tc = db.query(TestCase).filter(TestCase.name == case_name).first()
+        if not tc:
+            raise HTTPException(status_code=404, detail=f"未找到托管用例: {case_name}")
+
+        lines = tc.script_content.splitlines(keepends=True)
+        start_line, func_lines = _extract_function_source(lines, case_name)
+        # 若脚本中没有同名函数，则展示完整脚本
+        if start_line == -1:
+            start_line = 1
+            func_lines = lines
+
+        source_with_numbers = [
+            f"{idx:>4}: {code_line}"
+            for idx, code_line in enumerate(func_lines, start=start_line)
+        ]
+        return {
+            "case_name": case_name,
+            "file_path": case_path,
+            "start_line": start_line,
+            "source": "".join(source_with_numbers),
+        }
+
+    # ---- 本地文件用例 ----
+    file_path = Path(case_path)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"文件不存在: {case_path}")
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"读取文件失败: {e}")
+
+    start_line, func_lines = _extract_function_source(lines, case_name)
     if start_line == -1:
         raise HTTPException(status_code=404, detail=f"未找到函数: {case_name}")
 
-    func_lines = lines[start_line - 1:end_line]
-    source_with_numbers = []
-    for idx, code_line in enumerate(func_lines, start=start_line):
-        source_with_numbers.append(f"{idx:>4}: {code_line}",)
-
+    source_with_numbers = [
+        f"{idx:>4}: {code_line}"
+        for idx, code_line in enumerate(func_lines, start=start_line)
+    ]
     return {
         "case_name": case_name,
         "file_path": str(file_path),
