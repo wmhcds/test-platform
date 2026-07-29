@@ -41,6 +41,8 @@ class TestCaseOut(BaseModel):
     script_content: str
     category_id: Optional[int] = None
     category_name: Optional[str] = None
+    original_category_id: Optional[int] = None
+    original_category_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -52,6 +54,7 @@ class CategoryOut(BaseModel):
     id: int
     name: str
     case_count: int = 0
+    is_system: bool = False
     created_at: datetime
 
     class Config:
@@ -71,21 +74,40 @@ class ExecuteResult(BaseModel):
     error_message: str = ""
 
 
+class BatchIdsRequest(BaseModel):
+    ids: list[int]
+
+
 class BatchExecuteRequest(BaseModel):
     case_ids: list[int]
     batch_name: str = ""
 
 
 def _to_out(tc: TestCase) -> TestCaseOut:
+    original_cat_name = None
+    if tc.original_category_id:
+        # lazy load via db if needed; use category_name from current relationship as fallback
+        pass  # will be computed in list context where db session is available
+
     return TestCaseOut(
         id=tc.id,
         name=tc.name,
         script_content=tc.script_content,
         category_id=tc.category_id,
         category_name=tc.category.name if tc.category else None,
+        original_category_id=tc.original_category_id,
+        original_category_name=None,
         created_at=tc.created_at,
         updated_at=tc.updated_at,
     )
+
+
+def _get_recycle_bin(db):
+    """获取回收站目录。"""
+    return db.query(TestCaseCategory).filter(
+        TestCaseCategory.is_system == True,
+        TestCaseCategory.name == "回收站"
+    ).first()
 
 
 # ---- COS 辅助函数 ----
@@ -123,14 +145,44 @@ def _delete_script_cos(name: str) -> bool:
 
 # ===================== 目录 API =====================
 @router.get("/categories", response_model=list[CategoryOut])
-def list_categories():
+def list_categories(include_deleted: bool = Query(False)):
     with db_session() as db:
-        cats = db.query(TestCaseCategory).order_by(TestCaseCategory.name).all()
+        recycle = _get_recycle_bin(db)
+        # 普通目录：非系统、非删除
+        q = db.query(TestCaseCategory).filter(
+            TestCaseCategory.is_system == False,
+        )
+        if not include_deleted:
+            q = q.filter(TestCaseCategory.is_deleted == False)
+        cats = q.order_by(TestCaseCategory.name).all()
         result = []
         for c in cats:
-            count = db.query(TestCase).filter(TestCase.category_id == c.id).count()
+            count = db.query(TestCase).filter(
+                TestCase.category_id == c.id,
+                TestCase.original_category_id == None,
+            ).count()
+            deleted_count = db.query(TestCase).filter(
+                TestCase.original_category_id == c.id,
+                TestCase.category_id == recycle.id if recycle else -1,
+            ).count()
             result.append(CategoryOut(
-                id=c.id, name=c.name, case_count=count, created_at=c.created_at
+                id=c.id, name=c.name,
+                case_count=count if not c.is_deleted else deleted_count,
+                is_system=False, created_at=c.created_at,
+            ))
+        # 回收站
+        if recycle:
+            recycle_count = db.query(TestCase).filter(
+                TestCase.category_id == recycle.id,
+            ).count()
+            deleted_cat_count = db.query(TestCaseCategory).filter(
+                TestCaseCategory.is_system == False,
+                TestCaseCategory.is_deleted == True,
+            ).count()
+            result.append(CategoryOut(
+                id=recycle.id, name=recycle.name,
+                case_count=recycle_count + deleted_cat_count,
+                is_system=True, created_at=recycle.created_at,
             ))
         return result
 
@@ -140,6 +192,8 @@ def create_category(body: CategoryCreate):
     name = body.name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="目录名称不能为空")
+    if name == "回收站":
+        raise HTTPException(status_code=400, detail="不能创建与回收站同名的目录")
     with db_session() as db:
         if db.query(TestCaseCategory).filter(TestCaseCategory.name == name).first():
             raise HTTPException(status_code=409, detail=f"目录 '{name}' 已存在")
@@ -147,7 +201,8 @@ def create_category(body: CategoryCreate):
         db.add(cat)
         db.commit()
         db.refresh(cat)
-        return CategoryOut(id=cat.id, name=cat.name, case_count=0, created_at=cat.created_at)
+        return CategoryOut(id=cat.id, name=cat.name, case_count=0,
+                           is_system=False, created_at=cat.created_at)
 
 
 @router.put("/categories/{cat_id}", response_model=CategoryOut)
@@ -159,6 +214,8 @@ def update_category(cat_id: int, body: CategoryCreate):
         cat = db.query(TestCaseCategory).filter(TestCaseCategory.id == cat_id).first()
         if not cat:
             raise HTTPException(status_code=404, detail="目录不存在")
+        if cat.is_system:
+            raise HTTPException(status_code=403, detail="系统目录不可修改")
         dup = db.query(TestCaseCategory).filter(
             TestCaseCategory.name == name, TestCaseCategory.id != cat_id
         ).first()
@@ -167,23 +224,113 @@ def update_category(cat_id: int, body: CategoryCreate):
         cat.name = name
         db.commit()
         db.refresh(cat)
-        count = db.query(TestCase).filter(TestCase.category_id == cat.id).count()
-        return CategoryOut(id=cat.id, name=cat.name, case_count=count, created_at=cat.created_at)
+        count = db.query(TestCase).filter(
+            TestCase.category_id == cat.id,
+            TestCase.original_category_id == None,
+        ).count()
+        return CategoryOut(id=cat.id, name=cat.name, case_count=count,
+                           is_system=False, created_at=cat.created_at)
 
 
 @router.delete("/categories/{cat_id}")
 def delete_category(cat_id: int):
+    """软删除目录：将目录和其下用例移入回收站。"""
     with db_session() as db:
         cat = db.query(TestCaseCategory).filter(TestCaseCategory.id == cat_id).first()
         if not cat:
             raise HTTPException(status_code=404, detail="目录不存在")
-        # 将目录下的用例移到未分类
-        db.query(TestCase).filter(TestCase.category_id == cat_id).update(
-            {TestCase.category_id: None}
-        )
+        if cat.is_system:
+            raise HTTPException(status_code=403, detail="系统目录不可删除")
+        recycle = _get_recycle_bin(db)
+        if not recycle:
+            raise HTTPException(status_code=500, detail="回收站不存在，请重启服务初始化")
+
+        # 将该目录下的所有用例移入回收站，记录原目录
+        cases = db.query(TestCase).filter(TestCase.category_id == cat_id).all()
+        for tc in cases:
+            tc.original_category_id = tc.category_id
+            tc.category_id = recycle.id
+
+        # 软删除该目录
+        cat.is_deleted = True
+        db.commit()
+        return {"ok": True, "detail": f"目录 '{cat.name}' 及 {len(cases)} 个用例已移入回收站"}
+
+
+@router.post("/categories/{cat_id}/restore")
+def restore_category(cat_id: int):
+    """从回收站恢复目录及该目录下的所有用例。"""
+    with db_session() as db:
+        cat = db.query(TestCaseCategory).filter(TestCaseCategory.id == cat_id).first()
+        if not cat:
+            raise HTTPException(status_code=404, detail="目录不存在")
+        if not cat.is_deleted:
+            raise HTTPException(status_code=400, detail="该目录未被删除，无需恢复")
+        recycle = _get_recycle_bin(db)
+
+        # 恢复该目录下原属于它的用例
+        if recycle:
+            cases = db.query(TestCase).filter(
+                TestCase.original_category_id == cat_id,
+                TestCase.category_id == recycle.id,
+            ).all()
+            for tc in cases:
+                tc.category_id = tc.original_category_id
+                tc.original_category_id = None
+
+        cat.is_deleted = False
+        db.commit()
+        return {"ok": True, "detail": f"目录 '{cat.name}' 已恢复"}
+
+
+@router.delete("/categories/{cat_id}/permanent")
+def permanent_delete_category(cat_id: int):
+    """永久删除目录及其下所有用例（需在回收站内操作）。"""
+    with db_session() as db:
+        cat = db.query(TestCaseCategory).filter(TestCaseCategory.id == cat_id).first()
+        if not cat:
+            raise HTTPException(status_code=404, detail="目录不存在")
+        if cat.is_system:
+            raise HTTPException(status_code=403, detail="系统目录不可删除")
+        recycle = _get_recycle_bin(db)
+
+        # 永久删除该目录下的所有用例（在回收站中的）
+        if recycle:
+            cases = db.query(TestCase).filter(
+                TestCase.original_category_id == cat_id,
+                TestCase.category_id == recycle.id,
+            ).all()
+            for tc in cases:
+                _delete_script_cos(tc.name)
+                db.delete(tc)
+
         db.delete(cat)
         db.commit()
-        return {"ok": True, "detail": f"目录 '{cat.name}' 已删除"}
+        return {"ok": True, "detail": f"目录 '{cat.name}' 已永久删除"}
+
+
+@router.get("/categories/deleted", response_model=list[CategoryOut])
+def list_deleted_categories():
+    """列出已删除（在回收站中）的目录。"""
+    with db_session() as db:
+        recycle = _get_recycle_bin(db)
+        cats = db.query(TestCaseCategory).filter(
+            TestCaseCategory.is_system == False,
+            TestCaseCategory.is_deleted == True,
+        ).order_by(TestCaseCategory.name).all()
+        result = []
+        for c in cats:
+            count = 0
+            if recycle:
+                count = db.query(TestCase).filter(
+                    TestCase.original_category_id == c.id,
+                    TestCase.category_id == recycle.id,
+                ).count()
+            result.append(CategoryOut(
+                id=c.id, name=c.name, case_count=count,
+                is_system=False, created_at=c.created_at,
+            ))
+        return result
 
 
 # ===================== 用例 API =====================
@@ -193,12 +340,31 @@ def list_test_cases(
     category_id: Optional[int] = Query(None, description="按目录筛选"),
 ):
     with db_session() as db:
+        recycle = _get_recycle_bin(db)
+        recycle_id = recycle.id if recycle else None
+
         q = db.query(TestCase)
         if category_id is not None:
             q = q.filter(TestCase.category_id == category_id)
+        else:
+            # 全部：排除回收站中的用例
+            if recycle_id:
+                q = q.filter(TestCase.category_id != recycle_id)
         if search:
             q = q.filter(TestCase.name.ilike(f"%{search}%"))
-        return [_to_out(tc) for tc in q.order_by(TestCase.updated_at.desc()).all()]
+        tcs = q.order_by(TestCase.updated_at.desc()).all()
+
+        # 补充 original_category_name
+        result = []
+        for tc in tcs:
+            out = _to_out(tc)
+            if tc.original_category_id:
+                orig_cat = db.query(TestCaseCategory).filter(
+                    TestCaseCategory.id == tc.original_category_id
+                ).first()
+                out.original_category_name = orig_cat.name if orig_cat else None
+            result.append(out)
+        return result
 
 
 @router.get("/{case_id}", response_model=TestCaseOut)
@@ -207,7 +373,13 @@ def get_test_case(case_id: int):
         tc = db.query(TestCase).filter(TestCase.id == case_id).first()
         if not tc:
             raise HTTPException(status_code=404, detail="测试用例不存在")
-        return _to_out(tc)
+        out = _to_out(tc)
+        if tc.original_category_id:
+            orig_cat = db.query(TestCaseCategory).filter(
+                TestCaseCategory.id == tc.original_category_id
+            ).first()
+            out.original_category_name = orig_cat.name if orig_cat else None
+        return out
 
 
 @router.post("", response_model=TestCaseOut)
@@ -272,6 +444,56 @@ def update_test_case(case_id: int, body: TestCaseUpdate):
 
 @router.delete("/{case_id}")
 def delete_test_case(case_id: int):
+    """软删除用例：移入回收站。"""
+    with db_session() as db:
+        tc = db.query(TestCase).filter(TestCase.id == case_id).first()
+        if not tc:
+            raise HTTPException(status_code=404, detail="测试用例不存在")
+        recycle = _get_recycle_bin(db)
+        if not recycle:
+            raise HTTPException(status_code=500, detail="回收站不存在，请重启服务初始化")
+        # 记录原目录后移入回收站
+        tc.original_category_id = tc.category_id
+        tc.category_id = recycle.id
+        db.commit()
+        return {"ok": True, "detail": f"测试用例 '{tc.name}' 已移入回收站"}
+
+
+@router.post("/batch-delete")
+def batch_delete(body: BatchIdsRequest):
+    """批量软删除用例。"""
+    if not body.ids:
+        raise HTTPException(status_code=400, detail="请选择至少一个用例")
+    with db_session() as db:
+        recycle = _get_recycle_bin(db)
+        if not recycle:
+            raise HTTPException(status_code=500, detail="回收站不存在，请重启服务初始化")
+        tcs = db.query(TestCase).filter(TestCase.id.in_(body.ids)).all()
+        for tc in tcs:
+            tc.original_category_id = tc.category_id
+            tc.category_id = recycle.id
+        db.commit()
+        return {"ok": True, "detail": f"{len(tcs)} 个用例已移入回收站"}
+
+
+@router.post("/{case_id}/restore")
+def restore_test_case(case_id: int):
+    """从回收站恢复用例到原目录。"""
+    with db_session() as db:
+        tc = db.query(TestCase).filter(TestCase.id == case_id).first()
+        if not tc:
+            raise HTTPException(status_code=404, detail="测试用例不存在")
+        if tc.original_category_id is None:
+            raise HTTPException(status_code=400, detail="该用例未被删除，无需恢复")
+        tc.category_id = tc.original_category_id
+        tc.original_category_id = None
+        db.commit()
+        return {"ok": True, "detail": f"测试用例 '{tc.name}' 已恢复"}
+
+
+@router.delete("/{case_id}/permanent")
+def permanent_delete_test_case(case_id: int):
+    """永久删除用例。"""
     with db_session() as db:
         tc = db.query(TestCase).filter(TestCase.id == case_id).first()
         if not tc:
@@ -280,7 +502,38 @@ def delete_test_case(case_id: int):
         db.delete(tc)
         db.commit()
         _delete_script_cos(name)
-        return {"ok": True, "detail": f"测试用例 '{name}' 已删除"}
+        return {"ok": True, "detail": f"测试用例 '{name}' 已永久删除"}
+
+
+@router.post("/batch-restore")
+def batch_restore(body: BatchIdsRequest):
+    """批量从回收站恢复用例。"""
+    if not body.ids:
+        raise HTTPException(status_code=400, detail="请选择至少一个用例")
+    with db_session() as db:
+        tcs = db.query(TestCase).filter(TestCase.id.in_(body.ids)).all()
+        count = 0
+        for tc in tcs:
+            if tc.original_category_id is not None:
+                tc.category_id = tc.original_category_id
+                tc.original_category_id = None
+                count += 1
+        db.commit()
+        return {"ok": True, "detail": f"{count} 个用例已恢复"}
+
+
+@router.post("/batch-permanent-delete")
+def batch_permanent_delete(body: BatchIdsRequest):
+    """批量永久删除用例。"""
+    if not body.ids:
+        raise HTTPException(status_code=400, detail="请选择至少一个用例")
+    with db_session() as db:
+        tcs = db.query(TestCase).filter(TestCase.id.in_(body.ids)).all()
+        for tc in tcs:
+            _delete_script_cos(tc.name)
+            db.delete(tc)
+        db.commit()
+        return {"ok": True, "detail": f"{len(tcs)} 个用例已永久删除"}
 
 
 # ---- 单条执行 ----

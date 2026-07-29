@@ -79,6 +79,7 @@ export interface TestCaseCategoryData {
   id: number
   name: string
   case_count: number
+  is_system: boolean
   created_at: string
 }
 
@@ -88,6 +89,8 @@ export interface TestCaseData {
   script_content: string
   category_id: number | null
   category_name: string | null
+  original_category_id: number | null
+  original_category_name: string | null
   created_at: string
   updated_at: string
 }
@@ -149,6 +152,12 @@ export const api = {
     http.put<TestCaseCategoryData>(`/test-cases/categories/${id}`, { name }).then((r) => r.data),
   deleteCategory: (id: number) =>
     http.delete(`/test-cases/categories/${id}`).then((r) => r.data),
+  restoreCategory: (id: number) =>
+    http.post(`/test-cases/categories/${id}/restore`).then((r) => r.data),
+  permanentDeleteCategory: (id: number) =>
+    http.delete(`/test-cases/categories/${id}/permanent`).then((r) => r.data),
+  listDeletedCategories: () =>
+    http.get<TestCaseCategoryData[]>('/test-cases/categories/deleted').then((r) => r.data),
 
   // 测试用例管理
   listTestCases: (search?: string, categoryId?: number) =>
@@ -161,6 +170,16 @@ export const api = {
     http.put<TestCaseData>(`/test-cases/${id}`, data).then((r) => r.data),
   deleteTestCase: (id: number) =>
     http.delete(`/test-cases/${id}`).then((r) => r.data),
+  batchDeleteTestCases: (ids: number[]) =>
+    http.post('/test-cases/batch-delete', { ids }).then((r) => r.data),
+  restoreTestCase: (id: number) =>
+    http.post(`/test-cases/${id}/restore`).then((r) => r.data),
+  permanentDeleteTestCase: (id: number) =>
+    http.delete(`/test-cases/${id}/permanent`).then((r) => r.data),
+  batchRestoreTestCases: (ids: number[]) =>
+    http.post('/test-cases/batch-restore', { ids }).then((r) => r.data),
+  batchPermanentDeleteTestCases: (ids: number[]) =>
+    http.post('/test-cases/batch-permanent-delete', { ids }).then((r) => r.data),
   executeTestCase: (id: number) =>
     http.post<ExecuteResultData>(`/test-cases/${id}/execute`).then((r) => r.data),
   batchExecute: (caseIds: number[], batchName: string) =>

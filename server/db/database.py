@@ -58,10 +58,14 @@ def init_db():
     """初始化数据库，创建所有表，并补充缺失的列。"""
     Base.metadata.create_all(bind=engine)
 
-    if DB_TYPE != "sqlite":
-        return  # MySQL 模式下，列由 SQLAlchemy 自动管理，无需手动 ALTER TABLE
+    if DB_TYPE == "sqlite":
+        _migrate_sqlite_columns()
 
-    # ---- SQLite 模式：兼容旧数据库，补充缺失列 ----
+    init_recycle_bin()
+
+
+def _migrate_sqlite_columns():
+    """SQLite 模式：兼容旧数据库，补充缺失列。"""
     DB_PATH = _get_sqlite_path()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -85,15 +89,47 @@ def init_db():
             cursor.execute(f"ALTER TABLE case_runs ADD COLUMN {col_name} {col_def}")
             print(f"  [OK] auto-add column: case_runs.{col_name}")
 
-    # test_cases 补充 category_id 列
+    # test_cases 补充列
     cursor.execute("PRAGMA table_info(test_cases)")
     tc_columns = {row[1] for row in cursor.fetchall()}
     if "category_id" not in tc_columns:
         cursor.execute("ALTER TABLE test_cases ADD COLUMN category_id INTEGER")
         print("  [OK] auto-add column: test_cases.category_id")
+    if "original_category_id" not in tc_columns:
+        cursor.execute("ALTER TABLE test_cases ADD COLUMN original_category_id INTEGER")
+        print("  [OK] auto-add column: test_cases.original_category_id")
+
+    # test_case_categories 补充列
+    cursor.execute("PRAGMA table_info(test_case_categories)")
+    cat_columns = {row[1] for row in cursor.fetchall()}
+    if "is_system" not in cat_columns:
+        cursor.execute("ALTER TABLE test_case_categories ADD COLUMN is_system BOOLEAN DEFAULT 0")
+        print("  [OK] auto-add column: test_case_categories.is_system")
+    if "is_deleted" not in cat_columns:
+        cursor.execute("ALTER TABLE test_case_categories ADD COLUMN is_deleted BOOLEAN DEFAULT 0")
+        print("  [OK] auto-add column: test_case_categories.is_deleted")
 
     conn.commit()
     conn.close()
+
+
+def init_recycle_bin():
+    """确保回收站目录存在。"""
+    from db.models import TestCaseCategory
+    from sqlalchemy.orm import Session
+    session = Session(bind=engine)
+    try:
+        recycle = session.query(TestCaseCategory).filter(
+            TestCaseCategory.is_system == True,
+            TestCaseCategory.name == "回收站"
+        ).first()
+        if not recycle:
+            recycle = TestCaseCategory(name="回收站", is_system=True, is_deleted=False)
+            session.add(recycle)
+            session.commit()
+            print("  [OK] recycle bin created")
+    finally:
+        session.close()
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declarative_base
@@ -47,6 +47,8 @@ class TestCaseCategory(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), unique=True, nullable=False)
+    is_system = Column(Boolean, default=False)   # 系统目录（如回收站），不可删除/重命名
+    is_deleted = Column(Boolean, default=False)  # 软删除标记
     created_at = Column(DateTime, default=func.now())
 
     cases = relationship("TestCase", back_populates="category")
@@ -59,6 +61,7 @@ class TestCase(Base):
     category_id = Column(Integer, ForeignKey("test_case_categories.id"), nullable=True)
     name = Column(String(255), unique=True, nullable=False)
     script_content = Column(Text, nullable=False)
+    original_category_id = Column(Integer, nullable=True)  # 软删除前的原目录ID，恢复时使用
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 

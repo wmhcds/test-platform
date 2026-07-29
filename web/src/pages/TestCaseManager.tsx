@@ -1,12 +1,13 @@
-import { useEffect, useState, lazy, Suspense, useCallback } from 'react'
+import { useEffect, useState, lazy, Suspense, useCallback, useMemo } from 'react'
 import {
   Card, Table, Button, Input, Modal, Space, message, Tag, Drawer,
-  Typography, Popconfirm, Tooltip, Spin, Select,
+  Typography, Popconfirm, Tooltip, Spin, Select, List,
 } from 'antd'
 import {
   PlusOutlined, EditOutlined, DeleteOutlined,
   PlayCircleOutlined, SearchOutlined, ThunderboltOutlined,
   FolderAddOutlined, FolderOutlined, AppstoreOutlined,
+  UndoOutlined, DeleteFilled,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import api, { TestCaseData, TestCaseCategoryData, ExecuteResultData } from '../api/client'
@@ -29,6 +30,9 @@ export default function TestCaseManager() {
   const [catName, setCatName] = useState('')
   const [catSaving, setCatSaving] = useState(false)
 
+  // 回收站相关
+  const [deletedCategories, setDeletedCategories] = useState<TestCaseCategoryData[]>([])
+
   // 编辑弹窗
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -45,10 +49,30 @@ export default function TestCaseManager() {
   // 选中行
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [batchExecuting, setBatchExecuting] = useState(false)
+  const [batchDeleting, setBatchDeleting] = useState(false)
+  const [batchRestoring, setBatchRestoring] = useState(false)
+  const [batchPermanenting, setBatchPermanenting] = useState(false)
+
+  // 回收站ID
+  const recycleBinId = useMemo(() => {
+    const rb = categories.find(c => c.is_system)
+    return rb?.id
+  }, [categories])
+
+  const isInRecycleBin = activeCategory !== undefined && activeCategory === recycleBinId
 
   const loadCategories = () => {
     api.listCategories().then(setCategories).catch(() => {})
   }
+
+  // 当选中回收站时加载已删除目录列表
+  useEffect(() => {
+    if (isInRecycleBin) {
+      api.listDeletedCategories().then(setDeletedCategories).catch(() => {})
+    } else {
+      setDeletedCategories([])
+    }
+  }, [isInRecycleBin])
 
   const fetchData = () => {
     setLoading(true)
@@ -94,11 +118,29 @@ export default function TestCaseManager() {
 
   const handleCatDelete = async (cat: TestCaseCategoryData) => {
     try {
-      await api.deleteCategory(cat.id)
-      message.success('删除成功')
+      const res = await api.deleteCategory(cat.id)
+      message.success(res.detail || '已移入回收站')
       if (activeCategory === cat.id) setActiveCategory(undefined)
       loadCategories()
-    } catch { message.error('删除失败') }
+    } catch (err: any) { message.error(err.response?.data?.detail || '删除失败') }
+  }
+
+  const handleCatRestore = async (cat: TestCaseCategoryData) => {
+    try {
+      const res = await api.restoreCategory(cat.id)
+      message.success(res.detail || '目录已恢复')
+      loadCategories()
+      fetchData()
+    } catch (err: any) { message.error(err.response?.data?.detail || '恢复失败') }
+  }
+
+  const handleCatPermanentDelete = async (cat: TestCaseCategoryData) => {
+    try {
+      const res = await api.permanentDeleteCategory(cat.id)
+      message.success(res.detail || '目录已永久删除')
+      loadCategories()
+      fetchData()
+    } catch (err: any) { message.error(err.response?.data?.detail || '删除失败') }
   }
 
   // ---------- 用例操作 ----------
@@ -106,7 +148,7 @@ export default function TestCaseManager() {
     setEditingId(null)
     setEditName('')
     setEditContent('')
-    setEditCategoryId(activeCategory)
+    setEditCategoryId(isInRecycleBin ? undefined : activeCategory)
     setModalOpen(true)
   }
 
@@ -140,12 +182,32 @@ export default function TestCaseManager() {
 
   const handleDelete = async (id: number) => {
     try {
-      await api.deleteTestCase(id)
-      message.success('删除成功')
+      const res = await api.deleteTestCase(id)
+      message.success(res.detail || '已移入回收站')
       setSelectedIds((prev) => prev.filter((x) => x !== id))
       fetchData()
       loadCategories()
-    } catch { message.error('删除失败') }
+    } catch (err: any) { message.error(err.response?.data?.detail || '删除失败') }
+  }
+
+  const handleRestore = async (id: number) => {
+    try {
+      const res = await api.restoreTestCase(id)
+      message.success(res.detail || '已恢复')
+      setSelectedIds((prev) => prev.filter((x) => x !== id))
+      fetchData()
+      loadCategories()
+    } catch (err: any) { message.error(err.response?.data?.detail || '恢复失败') }
+  }
+
+  const handlePermanentDelete = async (id: number) => {
+    try {
+      await api.permanentDeleteTestCase(id)
+      message.success('已永久删除')
+      setSelectedIds((prev) => prev.filter((x) => x !== id))
+      fetchData()
+      loadCategories()
+    } catch (err: any) { message.error(err.response?.data?.detail || '删除失败') }
   }
 
   const handleExecute = async (row: TestCaseData) => {
@@ -173,6 +235,54 @@ export default function TestCaseManager() {
     finally { setBatchExecuting(false) }
   }
 
+  const handleBatchDelete = async () => {
+    if (selectedIds.length === 0) { message.warning('请至少选择一个测试用例'); return }
+    setBatchDeleting(true)
+    try {
+      const res = await api.batchDeleteTestCases(selectedIds)
+      message.success(res.detail || '已批量移入回收站')
+      setSelectedIds([])
+      fetchData()
+      loadCategories()
+    } catch (err: any) { message.error(err.response?.data?.detail || '批量删除失败') }
+    finally { setBatchDeleting(false) }
+  }
+
+  const handleBatchRestore = async () => {
+    if (selectedIds.length === 0) { message.warning('请至少选择一个测试用例'); return }
+    setBatchRestoring(true)
+    try {
+      const res = await api.batchRestoreTestCases(selectedIds)
+      message.success(res.detail || '已批量恢复')
+      setSelectedIds([])
+      fetchData()
+      loadCategories()
+    } catch (err: any) { message.error(err.response?.data?.detail || '批量恢复失败') }
+    finally { setBatchRestoring(false) }
+  }
+
+  const handleBatchPermanentDelete = async () => {
+    if (selectedIds.length === 0) { message.warning('请至少选择一个测试用例'); return }
+    Modal.confirm({
+      title: '确认永久删除',
+      content: `确定永久删除选中的 ${selectedIds.length} 个用例吗？此操作不可撤销！`,
+      okText: '永久删除',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        setBatchPermanenting(true)
+        try {
+          const res = await api.batchPermanentDeleteTestCases(selectedIds)
+          message.success(res.detail || '已永久删除')
+          setSelectedIds([])
+          fetchData()
+          loadCategories()
+        } catch (err: any) { message.error(err.response?.data?.detail || '删除失败') }
+        finally { setBatchPermanenting(false) }
+      },
+    })
+  }
+
   // Monaco 加载前注册 Python 补全提供者
   const handleMonacoBeforeMount = useCallback((monaco: any) => {
     registerPythonCompletions(monaco)
@@ -185,7 +295,10 @@ export default function TestCaseManager() {
       render: (name: string, row) => (
         <Space>
           <Text style={{ color: '#f1f5f9', fontWeight: 500 }}>{name}</Text>
-          {row.category_name && <Tag color="blue" style={{ fontSize: 11 }}>{row.category_name}</Tag>}
+          {row.category_name && !isInRecycleBin && <Tag color="blue" style={{ fontSize: 11 }}>{row.category_name}</Tag>}
+          {isInRecycleBin && row.original_category_name && (
+            <Tag color="orange" style={{ fontSize: 11 }}>原: {row.original_category_name}</Tag>
+          )}
         </Space>
       ),
     },
@@ -198,11 +311,22 @@ export default function TestCaseManager() {
       title: '操作', key: 'action', width: 260,
       render: (_, row) => (
         <Space size="small">
-          <Tooltip title="编辑"><Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} style={{ color: '#818cf8' }} /></Tooltip>
-          <Tooltip title="调试执行"><Button type="text" size="small" icon={<PlayCircleOutlined />} loading={executing} onClick={() => handleExecute(row)} style={{ color: '#22c55e' }} /></Tooltip>
-          <Popconfirm title="确认删除" description={`确定删除 "${row.name}" 吗？`} onConfirm={() => handleDelete(row.id)} okText="删除" cancelText="取消">
-            <Tooltip title="删除"><Button type="text" size="small" icon={<DeleteOutlined />} danger /></Tooltip>
-          </Popconfirm>
+          {isInRecycleBin ? (
+            <>
+              <Tooltip title="恢复到原目录"><Button type="text" size="small" icon={<UndoOutlined />} onClick={() => handleRestore(row.id)} style={{ color: '#22c55e' }} /></Tooltip>
+              <Popconfirm title="确认永久删除" description={`确定永久删除 "${row.name}" 吗？此操作不可撤销！`} onConfirm={() => handlePermanentDelete(row.id)} okText="永久删除" cancelText="取消" okButtonProps={{ danger: true }}>
+                <Tooltip title="永久删除"><Button type="text" size="small" icon={<DeleteFilled />} danger /></Tooltip>
+              </Popconfirm>
+            </>
+          ) : (
+            <>
+              <Tooltip title="编辑"><Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} style={{ color: '#818cf8' }} /></Tooltip>
+              <Tooltip title="调试执行"><Button type="text" size="small" icon={<PlayCircleOutlined />} loading={executing} onClick={() => handleExecute(row)} style={{ color: '#22c55e' }} /></Tooltip>
+              <Popconfirm title="确认删除" description={`确定将 "${row.name}" 移入回收站吗？`} onConfirm={() => handleDelete(row.id)} okText="删除" cancelText="取消">
+                <Tooltip title="删除"><Button type="text" size="small" icon={<DeleteOutlined />} danger /></Tooltip>
+              </Popconfirm>
+            </>
+          )}
         </Space>
       ),
     },
@@ -235,7 +359,7 @@ export default function TestCaseManager() {
           >
             <FolderOutlined style={{ marginRight: 8 }} />全部
           </div>
-          {categories.map((cat) => (
+          {categories.filter(c => !c.is_system).map((cat) => (
             <div key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
               style={{
@@ -253,11 +377,34 @@ export default function TestCaseManager() {
                 <Button type="text" size="small"
                   onClick={(e) => { e.stopPropagation(); openCatEdit(cat) }}
                   style={{ color: '#cbd5e1', fontSize: 12 }}>✎</Button>
-                <Popconfirm title={`删除目录"${cat.name}"？用例将移至未分类`} onConfirm={(e) => { e?.stopPropagation(); handleCatDelete(cat) }} onCancel={(e) => e?.stopPropagation()}>
+                <Popconfirm
+                  title={`删除目录"${cat.name}"？`}
+                  description="目录及目录下所有用例将移入回收站"
+                  onConfirm={(e) => { e?.stopPropagation(); handleCatDelete(cat) }}
+                  onCancel={(e) => e?.stopPropagation()}
+                >
                   <Button type="text" size="small" danger
                     onClick={(e) => e.stopPropagation()}
                     style={{ fontSize: 12 }}>✕</Button>
                 </Popconfirm>
+              </span>
+            </div>
+          ))}
+          {/* 回收站入口（固定在底部） */}
+          {categories.filter(c => c.is_system).map((cat) => (
+            <div key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              style={{
+                padding: '8px 12px', borderRadius: 6, cursor: 'pointer', marginTop: 8,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                borderTop: '1px solid rgba(148,163,184,0.15)',
+                background: activeCategory === cat.id ? 'rgba(239,68,68,0.15)' : 'transparent',
+                color: activeCategory === cat.id ? '#ef4444' : '#94a3b8',
+                fontWeight: activeCategory === cat.id ? 600 : 400,
+              }}
+            >
+              <span><DeleteOutlined style={{ marginRight: 8 }} />{cat.name}
+                <span style={{ marginLeft: 6, fontSize: 12, color: '#cbd5e1' }}>({cat.case_count})</span>
               </span>
             </div>
           ))}
@@ -280,22 +427,85 @@ export default function TestCaseManager() {
             />
           </span>
           <Space>
-            <Button icon={<ThunderboltOutlined />} onClick={handleBatchExecute} loading={batchExecuting}
-              disabled={selectedIds.length === 0} className="btn-float-primary">
-              批量执行 ({selectedIds.length})
-            </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="btn-float-primary">
-              新建用例
-            </Button>
+            {isInRecycleBin ? (
+              <>
+                <Button icon={<UndoOutlined />} onClick={handleBatchRestore} loading={batchRestoring}
+                  disabled={selectedIds.length === 0} style={{ color: '#22c55e', borderColor: '#22c55e' }}>
+                  批量恢复 ({selectedIds.length})
+                </Button>
+                <Button icon={<DeleteFilled />} onClick={handleBatchPermanentDelete} loading={batchPermanenting}
+                  disabled={selectedIds.length === 0} danger>
+                  批量永久删除 ({selectedIds.length})
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button icon={<DeleteOutlined />} onClick={handleBatchDelete} loading={batchDeleting}
+                  disabled={selectedIds.length === 0} danger>
+                  批量删除 ({selectedIds.length})
+                </Button>
+                <Button icon={<ThunderboltOutlined />} onClick={handleBatchExecute} loading={batchExecuting}
+                  disabled={selectedIds.length === 0} className="btn-float-primary">
+                  批量执行 ({selectedIds.length})
+                </Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="btn-float-primary">
+                  新建用例
+                </Button>
+              </>
+            )}
           </Space>
         </div>
+
+        {/* 回收站中的已删除目录 */}
+        {isInRecycleBin && deletedCategories.length > 0 && (
+          <Card
+            bodyStyle={{ ...cardBodyStyle, padding: 12 }}
+            style={{
+              marginBottom: 16, background: 'rgba(239,68,68,0.05)',
+              border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12,
+            }}
+            title={<span style={{ color: '#f1f5f9', fontSize: 14 }}><DeleteOutlined style={{ color: '#ef4444' }} /> 已删除的目录</span>}
+          >
+            <List
+              size="small"
+              dataSource={deletedCategories}
+              renderItem={(cat) => (
+                <List.Item
+                  style={{ display: 'flex', justifyContent: 'space-between', color: '#e2e8f0', borderBottom: '1px solid rgba(148,163,184,0.1)' }}
+                >
+                  <span>
+                    <FolderOutlined style={{ marginRight: 8, color: '#94a3b8' }} />
+                    {cat.name}
+                    <span style={{ marginLeft: 6, fontSize: 12, color: '#cbd5e1' }}>({cat.case_count} 个用例)</span>
+                  </span>
+                  <Space size="small">
+                    <Tooltip title="恢复目录及用例">
+                      <Button type="text" size="small" icon={<UndoOutlined />}
+                        onClick={() => handleCatRestore(cat)}
+                        style={{ color: '#22c55e' }}>恢复</Button>
+                    </Tooltip>
+                    <Popconfirm
+                      title={`永久删除目录"${cat.name}"？`}
+                      description="目录及目录下所有用例将被永久删除，不可恢复！"
+                      onConfirm={() => handleCatPermanentDelete(cat)}
+                      okText="永久删除" cancelText="取消"
+                      okButtonProps={{ danger: true }}
+                    >
+                      <Button type="text" size="small" icon={<DeleteFilled />} danger>永久删除</Button>
+                    </Popconfirm>
+                  </Space>
+                </List.Item>
+              )}
+            />
+          </Card>
+        )}
 
         <Card bodyStyle={cardBodyStyle} style={{ background: '#1e293b', border: '1px solid rgba(148,163,184,0.15)', borderRadius: 12 }}>
           <Table
             className="tech-table" rowKey="id" columns={columns} dataSource={data} loading={loading}
             rowSelection={{ selectedRowKeys: selectedIds, onChange: (keys) => setSelectedIds(keys as number[]) }}
             pagination={{ pageSize: 15, showSizeChanger: false }}
-            locale={{ emptyText: '暂无测试用例，点击右上角"新建用例"创建' }}
+            locale={{ emptyText: isInRecycleBin ? '回收站为空' : '暂无测试用例，点击右上角"新建用例"创建' }}
           />
         </Card>
       </div>
@@ -332,7 +542,7 @@ export default function TestCaseManager() {
             placeholder="选择目录（可选）" allowClear style={{ width: '100%' }}
             value={editCategoryId}
             onChange={(val) => setEditCategoryId(val)}
-            options={categories.map((c) => ({ value: c.id, label: c.name }))}
+            options={categories.filter(c => !c.is_system).map((c) => ({ value: c.id, label: c.name }))}
           />
         </div>
         <div>
