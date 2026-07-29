@@ -11,6 +11,7 @@ import InviteCodes from './pages/InviteCodes'
 import UserManagement from './pages/UserManagement'
 import SchedulerConfig from './pages/SchedulerConfig'
 import DatabaseConfig from './pages/DatabaseConfig'
+import HttpRequestConfig from './pages/HttpRequestConfig'
 import Login from './pages/Login'
 
 function getToken(): string | null {
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/user/invite-codes" element={<InviteCodes />} />
         <Route path="/config/scheduler" element={<SchedulerConfig />} />
         <Route path="/config/database" element={<DatabaseConfig />} />
+        <Route path="/config/http-request" element={<HttpRequestConfig />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

@@ -112,6 +112,25 @@ export interface ConfigData {
   value: string
 }
 
+export interface HttpRequestHeaderItem {
+  key: string
+  value: string
+}
+
+export interface HttpRequestConfigData {
+  id: number
+  name: string
+  method: string
+  url: string
+  headers: HttpRequestHeaderItem[]
+  body: string
+  body_type: string
+  description: string
+  created_at: string
+  updated_at: string
+  created_by: string | null
+}
+
 export interface UserData {
   id: number
   username: string
@@ -211,6 +230,18 @@ export const api = {
     http.get<ConfigData>(`/config/${key}`).then((r) => r.data),
   setConfig: (key: string, value: string) =>
     http.put(`/config/${key}`, { value }).then((r) => r.data),
+
+  // HTTP 请求报文配置
+  listHttpRequestConfigs: () =>
+    http.get<HttpRequestConfigData[]>('/http-request-configs').then((r) => r.data),
+  getHttpRequestConfig: (id: number) =>
+    http.get<HttpRequestConfigData>(`/http-request-configs/${id}`).then((r) => r.data),
+  createHttpRequestConfig: (data: Omit<HttpRequestConfigData, 'id' | 'created_at' | 'updated_at' | 'created_by'>) =>
+    http.post<HttpRequestConfigData>('/http-request-configs', data).then((r) => r.data),
+  updateHttpRequestConfig: (id: number, data: Partial<Omit<HttpRequestConfigData, 'id' | 'created_at' | 'updated_at' | 'created_by'>>) =>
+    http.put<HttpRequestConfigData>(`/http-request-configs/${id}`, data).then((r) => r.data),
+  deleteHttpRequestConfig: (id: number) =>
+    http.delete(`/http-request-configs/${id}`).then((r) => r.data),
 
   // 用户管理
   listUsers: () =>

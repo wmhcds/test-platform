@@ -63,6 +63,7 @@ const MODULES: ModuleConfig[] = [
     children: [
       { key: '/config/scheduler', icon: '⏰', label: '定时器配置' },
       { key: '/config/database', icon: '🗄️', label: '数据库配置' },
+      { key: '/config/http-request', icon: '📨', label: '请求报文配置' },
     ],
   },
 ]

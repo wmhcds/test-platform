@@ -99,3 +99,20 @@ class PlatformConfig(Base):
 
     key = Column(String(100), primary_key=True)
     value = Column(Text, default="")
+
+
+# ---------- HTTP 请求报文配置表 ----------
+class HttpRequestConfig(Base):
+    __tablename__ = "http_request_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)
+    method = Column(String(20), nullable=False)
+    url = Column(Text, nullable=False)
+    headers = Column(Text, default="{}")
+    body = Column(Text, default="")
+    body_type = Column(String(50), default="none")
+    description = Column(Text, default="")
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    created_by = Column(String(100), nullable=True)
