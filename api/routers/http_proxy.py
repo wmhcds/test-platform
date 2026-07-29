@@ -1,66 +1,46 @@
-"""HTTP 请求代理接口：根据 login_type 选择登录方式，向后端业务接口发请求。
+"""HTTP 请求代理接口：按前端指定的 method/url/headers/body 直接发起请求。
 
-前端把 method/url/login_type/headers/body/files 发到本接口，本接口按
-login_type 选择对应登录方式拿到已登录的 requests.Session，实际发起请求，
-再把响应返回给前端展示。
+不处理任何登录态，用户请求什么就转发什么，仅做纯代理并返回状态码、耗时与响应体。
 """
 import json
-from typing import Optional, List, Dict
+import os
+from typing import Optional, List
 
 import requests
 from fastapi import APIRouter, UploadFile, File, Form
 
 router = APIRouter(prefix="/api/http", tags=["http"])
 
-# 登录/请求配置统一从 login_providers 获取（其内部已负责 tests 路径与 auth 导入）
-from api.login_providers import (  # noqa: E402
-    get_provider,
-    DEFAULT_LOGIN_TYPE,
-    API_HOST,
-    VERIFY_SSL,
-    UA,
+# 默认业务接口 Host（用于相对路径）
+API_HOST = "https://beta.vb.oa.com"
+
+# 内网自签名/企业 CA 证书默认不信任，测试环境关闭校验；生产环境可开启
+VERIFY_SSL = os.getenv("VERIFY_SSL", "false").lower() == "true"
+
+UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
 )
-
-# 按登录方式分别缓存 session（不同系统互不影响）
-_sessions: Dict[str, requests.Session] = {}
-
-
-def get_session(login_type: str) -> requests.Session:
-    key = (login_type or DEFAULT_LOGIN_TYPE).upper()
-    if key not in _sessions:
-        _sessions[key] = get_provider(key).get_session()
-    return _sessions[key]
-
-
-def reset_session(login_type: str) -> requests.Session:
-    """丢弃旧 session 并重新登录，用于 token 过期时自动刷新"""
-    key = (login_type or DEFAULT_LOGIN_TYPE).upper()
-    _sessions[key] = get_provider(key).get_session()
-    return _sessions[key]
-
-
-_MAX_RETRIES = 1
 
 
 @router.post("/send")
 async def send_request(
     method: str = Form(...),
     url: str = Form(...),
-    login_type: str = Form(DEFAULT_LOGIN_TYPE),
     headers: Optional[str] = Form(None),
     body: Optional[str] = Form(None),
     files: List[UploadFile] = File(default=[]),
 ):
     """代理发起 HTTP 请求，返回状态码、耗时与格式化响应体。"""
-    # 统一 URL：用户可能输入 http://，但内网业务接口要求 https（cookie Secure 标记）
-    if url.startswith("http://"):
-        full_url = url.replace("http://", "https://", 1)
-    elif url.startswith("https://"):
+    url = url.strip()
+    if url.startswith("http://") or url.startswith("https://"):
         full_url = url
-    else:
+    elif url.startswith("/"):
         full_url = f"{API_HOST}{url}"
+    else:
+        full_url = f"https://{url}"
 
-    print(f"[http_proxy] [{login_type}] {method} {full_url}")
+    print(f"[http_proxy] {method.upper()} {full_url}")
 
     req_headers = {"User-Agent": UA}
     if headers and headers.strip():
@@ -73,14 +53,13 @@ async def send_request(
     method = (method or "GET").upper()
 
     try:
-        # 文件内容在循环外一次性读取，避免重试时已被消费
         file_data = None
         if files:
             file_data = [("file", (f.filename, await f.read(), f.content_type)) for f in files]
 
         data_dict = None
         json_data = None
-        if method != "GET" and body and body.strip():
+        if method not in ("GET", "HEAD") and body and body.strip():
             try:
                 parsed_body = json.loads(body)
             except json.JSONDecodeError as e:
@@ -90,24 +69,18 @@ async def send_request(
             else:
                 json_data = parsed_body
 
-        for attempt in range(_MAX_RETRIES + 1):
-            session = get_session(login_type)
-
-            if method == "GET":
-                resp = session.get(full_url, headers=req_headers, **kwargs)
-            else:
-                resp = session.post(
-                    full_url, json=json_data, data=data_dict,
-                    files=file_data, headers=req_headers, **kwargs
-                )
-
-            # 401 → 登录态过期，重新登录后重试一次（仅重试 1 次）
-            if resp.status_code == 401 and attempt < _MAX_RETRIES:
-                print("[http_proxy] 检测到 401，自动重新登录并重试...")
-                reset_session(login_type)
-                continue
-
-            break
+        request_func = getattr(requests, method.lower(), requests.get)
+        if method in ("GET", "HEAD", "OPTIONS"):
+            resp = request_func(full_url, headers=req_headers, **kwargs)
+        else:
+            resp = request_func(
+                full_url,
+                json=json_data,
+                data=data_dict,
+                files=file_data,
+                headers=req_headers,
+                **kwargs,
+            )
 
         try:
             text = json.dumps(resp.json(), ensure_ascii=False, indent=2)

@@ -40,7 +40,6 @@ const MODULES: ModuleConfig[] = [
     children: [
       { key: '/ai/batches', icon: '📋', label: '测试批次列表' },
       { key: '/ai/test-cases', icon: '🧪', label: '测试用例管理' },
-      { key: '/ai/http', icon: '🌐', label: 'HTTP请求' },
     ],
   },
   {

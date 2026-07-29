@@ -5,7 +5,6 @@ import Dashboard from './pages/Dashboard'
 import BatchList from './pages/BatchList'
 import BatchDetail from './pages/BatchDetail'
 import Report from './pages/Report'
-import HttpClient from './pages/HttpClient'
 import TestCaseManager from './pages/TestCaseManager'
 import InviteCodes from './pages/InviteCodes'
 import UserManagement from './pages/UserManagement'
@@ -38,7 +37,6 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/ai/batches" element={<BatchList />} />
         <Route path="/ai/test-cases" element={<TestCaseManager />} />
-        <Route path="/ai/http" element={<HttpClient />} />
         <Route path="/ai/batch/:id" element={<BatchDetail />} />
         <Route path="/ai/report/:id" element={<Report />} />
         <Route path="/user/users" element={<UserManagement />} />

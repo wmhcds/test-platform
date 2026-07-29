@@ -193,15 +193,9 @@ export default function HttpRequestConfigPage() {
         if (h.key.trim()) headerObj[h.key.trim()] = h.value
       })
 
-      let url = form.url.trim()
-      if (!/^https?:\/\//.test(url) && !url.startsWith('/')) {
-        url = `http://${url}`
-      }
-
       const formData = new FormData()
       formData.append('method', form.method)
-      formData.append('login_type', '')
-      formData.append('url', url)
+      formData.append('url', form.url.trim())
       if (Object.keys(headerObj).length) {
         formData.append('headers', JSON.stringify(headerObj))
       }
@@ -379,7 +373,7 @@ export default function HttpRequestConfigPage() {
                 style={{ width: 110, color: '#fff' }}
               />
               <Input
-                placeholder="example.com/api/login 或 /api/login（必填）"
+                placeholder="https://example.com/api/login 或 /api/login（必填）"
                 value={form.url}
                 onChange={(e) => updateField('url', e.target.value)}
                 style={{ flex: 1, ...inputStyle }}

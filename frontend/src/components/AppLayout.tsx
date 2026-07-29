@@ -95,7 +95,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           }}
           items={[
             { key: '/', icon: '📋', label: '测试批次列表' },
-            { key: '/http', icon: '🌐', label: 'HTTP请求' },
           ]}
         />
       </Sider>
