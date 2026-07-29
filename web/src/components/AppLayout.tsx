@@ -5,6 +5,10 @@ import {
   LogoutOutlined,
   UserOutlined,
   HomeOutlined,
+  RocketOutlined,
+  TeamOutlined,
+  SettingOutlined,
+  LeftOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
@@ -16,6 +20,52 @@ interface Props {
   children: ReactNode
   onLogout: () => void
 }
+
+interface ModuleConfig {
+  key: string
+  prefix: string
+  label: string
+  icon: ReactNode
+  color: string
+  children: { key: string; icon: string; label: string }[]
+}
+
+const MODULES: ModuleConfig[] = [
+  {
+    key: 'ai',
+    prefix: '/ai',
+    label: 'AI用例执行平台',
+    icon: <RocketOutlined />,
+    color: '#818cf8',
+    children: [
+      { key: '/ai/batches', icon: '📋', label: '测试批次列表' },
+      { key: '/ai/test-cases', icon: '🧪', label: '测试用例管理' },
+      { key: '/ai/http', icon: '🌐', label: 'HTTP请求' },
+    ],
+  },
+  {
+    key: 'user',
+    prefix: '/user',
+    label: '用户管理中心',
+    icon: <TeamOutlined />,
+    color: '#34d399',
+    children: [
+      { key: '/user/users', icon: '👥', label: '用户管理' },
+      { key: '/user/invite-codes', icon: '🔑', label: '邀请码管理' },
+    ],
+  },
+  {
+    key: 'config',
+    prefix: '/config',
+    label: '配置中心',
+    icon: <SettingOutlined />,
+    color: '#fbbf24',
+    children: [
+      { key: '/config/scheduler', icon: '⏰', label: '定时器配置' },
+      { key: '/config/database', icon: '🗄️', label: '数据库配置' },
+    ],
+  },
+]
 
 export default function AppLayout({ children, onLogout }: Props) {
   const navigate = useNavigate()
@@ -41,17 +91,14 @@ export default function AppLayout({ children, onLogout }: Props) {
     }
   }
 
+  const activeModule = useMemo(() => {
+    const p = location.pathname
+    return MODULES.find((m) => p === m.prefix || p.startsWith(`${m.prefix}/`))
+  }, [location.pathname])
+
   const selectedKey = useMemo(() => {
     const p = location.pathname
     if (p === '/dashboard') return '/dashboard'
-    if (p === '/') return '/'
-    if (p.startsWith('/report')) return '/report'
-    if (p.startsWith('/test-cases')) return '/test-cases'
-    if (p.startsWith('/http')) return '/http'
-    if (p.startsWith('/invite-codes')) return '/invite-codes'
-    if (p.startsWith('/users')) return '/users'
-    if (p.startsWith('/config/scheduler')) return '/config/scheduler'
-    if (p.startsWith('/config/database')) return '/config/database'
     return p
   }, [location.pathname])
 
@@ -64,6 +111,47 @@ export default function AppLayout({ children, onLogout }: Props) {
       onClick: handleLogout,
     },
   ]
+
+  // 控制台页面：展示模块快捷入口
+  const dashboardMenuItems = collapsed
+    ? [
+        { key: '/dashboard', icon: <HomeOutlined />, label: '控制台' },
+        ...MODULES.map((m) => ({
+          key: m.children[0].key,
+          icon: m.icon,
+          label: m.label,
+        })),
+      ]
+    : [
+        { key: '/dashboard', icon: <HomeOutlined />, label: '控制台' },
+        {
+          type: 'group',
+          label: '功能模块',
+          children: MODULES.map((m) => ({
+            key: m.children[0].key,
+            icon: m.icon,
+            label: m.label,
+          })),
+        },
+      ]
+
+  // 模块内页面：只展示当前模块的功能
+  const moduleMenuItems = activeModule
+    ? [
+        { key: '/dashboard', icon: <HomeOutlined />, label: '控制台' },
+        {
+          type: 'group',
+          label: collapsed ? '' : activeModule.label,
+          children: activeModule.children.map((c) => ({
+            key: c.key,
+            icon: c.icon,
+            label: c.label,
+          })),
+        },
+      ]
+    : dashboardMenuItems
+
+  const menuItems = activeModule ? moduleMenuItems : dashboardMenuItems
 
   return (
     <Layout style={{ minHeight: '100vh', background: 'transparent' }}>
@@ -120,6 +208,27 @@ export default function AppLayout({ children, onLogout }: Props) {
           </Tooltip>
         </div>
 
+        {/* 模块返回按钮（在模块内时显示） */}
+        {activeModule && !collapsed && (
+          <div style={{ padding: '0 16px', marginBottom: 8 }}>
+            <Button
+              type="text"
+              block
+              icon={<LeftOutlined />}
+              onClick={() => navigate('/dashboard')}
+              style={{
+                color: activeModule.color,
+                background: 'rgba(255,255,255,0.04)',
+                borderRadius: 10,
+                textAlign: 'left',
+                fontWeight: 500,
+              }}
+            >
+              返回控制台
+            </Button>
+          </div>
+        )}
+
         {/* 导航菜单 */}
         <Menu
           theme="dark"
@@ -127,35 +236,8 @@ export default function AppLayout({ children, onLogout }: Props) {
           selectedKeys={[selectedKey]}
           onClick={({ key }) => navigate(key)}
           inlineCollapsed={collapsed}
-          style={{ background: 'transparent', borderRight: 0, marginTop: 8, flex: 1 }}
-          items={[
-            { key: '/dashboard', icon: <HomeOutlined />, label: '控制台' },
-            {
-              type: 'group',
-              label: collapsed ? '' : 'AI用例执行平台',
-              children: [
-                { key: '/', icon: '📋', label: '测试批次列表' },
-                { key: '/test-cases', icon: '🧪', label: '测试用例管理' },
-                { key: '/http', icon: '🌐', label: 'HTTP请求' },
-              ],
-            },
-            {
-              type: 'group',
-              label: collapsed ? '' : '用户管理中心',
-              children: [
-                { key: '/users', icon: '👥', label: '用户管理' },
-                { key: '/invite-codes', icon: '🔑', label: '邀请码管理' },
-              ],
-            },
-            {
-              type: 'group',
-              label: collapsed ? '' : '配置中心',
-              children: [
-                { key: '/config/scheduler', icon: '⏰', label: '定时器配置' },
-                { key: '/config/database', icon: '🗄️', label: '数据库配置' },
-              ],
-            },
-          ]}
+          style={{ background: 'transparent', borderRight: 0, flex: 1 }}
+          items={menuItems}
         />
       </Sider>
 

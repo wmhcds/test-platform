@@ -172,11 +172,11 @@ export default function BatchDetail() {
         <Button
           type="primary"
           className="btn-float-primary"
-          onClick={() => navigate(`/report/${dataAny.id}`)}
+          onClick={() => navigate(`/ai/report/${dataAny.id}`)}
         >
           查看测试报告
         </Button>
-        <Button className="btn-float-default" onClick={() => navigate('/')}>
+        <Button className="btn-float-default" onClick={() => navigate('/ai/batches')}>
           返回列表
         </Button>
       </Space>

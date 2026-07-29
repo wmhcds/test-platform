@@ -108,7 +108,7 @@ export default function Report() {
         )}
       </Card>
 
-      <Button onClick={() => navigate(`/batch/${data.id}`)}>返回详情</Button>
+      <Button onClick={() => navigate(`/ai/batch/${data.id}`)}>返回详情</Button>
     </Card>
   )
 }

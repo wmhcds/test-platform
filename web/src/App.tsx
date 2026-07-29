@@ -35,15 +35,16 @@ export default function App() {
     <AppLayout onLogout={handleLogout}>
       <Routes>
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/" element={<BatchList />} />
-        <Route path="/batch/:id" element={<BatchDetail />} />
-        <Route path="/report/:id" element={<Report />} />
-        <Route path="/http" element={<HttpClient />} />
-        <Route path="/test-cases" element={<TestCaseManager />} />
-        <Route path="/invite-codes" element={<InviteCodes />} />
-        <Route path="/users" element={<UserManagement />} />
+        <Route path="/ai/batches" element={<BatchList />} />
+        <Route path="/ai/test-cases" element={<TestCaseManager />} />
+        <Route path="/ai/http" element={<HttpClient />} />
+        <Route path="/ai/batch/:id" element={<BatchDetail />} />
+        <Route path="/ai/report/:id" element={<Report />} />
+        <Route path="/user/users" element={<UserManagement />} />
+        <Route path="/user/invite-codes" element={<InviteCodes />} />
         <Route path="/config/scheduler" element={<SchedulerConfig />} />
         <Route path="/config/database" element={<DatabaseConfig />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AppLayout>

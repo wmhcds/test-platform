@@ -29,9 +29,8 @@ export default function Login({ onLoginSuccess }: Props) {
         setGlowIndex(quoteRef.current - 1)
       } else {
         if (timerRef.current) clearInterval(timerRef.current)
-        // 所有字显示完毕后，末尾光标闪烁
       }
-    }, 80)
+    }, 70)
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
@@ -134,14 +133,71 @@ export default function Login({ onLoginSuccess }: Props) {
 
   return (
     <div className="login-page">
-      {/* 科技感动画文案 */}
+      {/* ===== 凡人修仙传动画背景 ===== */}
+      <div className="xianxia-bg">
+        {/* 星辰粒子 */}
+        <div className="stars">
+          {Array.from({ length: 60 }).map((_, i) => (
+            <span
+              key={`star-${i}`}
+              className="star"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 5}s`,
+                animationDuration: `${3 + Math.random() * 4}s`,
+                width: `${1 + Math.random() * 2}px`,
+                height: `${1 + Math.random() * 2}px`,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* 灵气光晕 */}
+        <div className="aura aura-1" />
+        <div className="aura aura-2" />
+        <div className="aura aura-3" />
+
+        {/* 修仙符文阵法（八卦样式） */}
+        <div className="rune-circle rune-1">
+          <div className="rune-inner" />
+          <div className="rune-yin-yang" />
+          <div className="rune-symbols">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <span
+                key={i}
+                className="rune-symbol"
+                style={{ transform: `rotate(${i * 45}deg) translateY(-90px)` }}
+              >
+                {['☰', '☱', '☲', '☳', '☴', '☵', '☶', '☷'][i]}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="rune-circle rune-2">
+          <div className="rune-inner" />
+          <div className="rune-ring" />
+        </div>
+
+        {/* 流星 */}
+        <div className="meteor meteor-1" />
+        <div className="meteor meteor-2" />
+        <div className="meteor meteor-3" />
+
+        {/* 底部云雾 */}
+        <div className="mist mist-1" />
+        <div className="mist mist-2" />
+      </div>
+
+      {/* 文案层 */}
       <div className="login-quote-wrapper">
-        <div className="login-quote-text">
+        <div className="login-quote-text xianxia-quote">
           {displayText.split('').map((char, i) => (
             <span
               key={i}
               className={`quote-char ${i === glowIndex ? 'just-typed' : ''}`}
-              style={{ animationDelay: `${i * 80}ms` }}
+              style={{ animationDelay: `${i * 70}ms` }}
             >
               {char}
             </span>

@@ -12,7 +12,7 @@ export default function Dashboard() {
       desc: '测试批次管理 · 用例管理 · HTTP 请求调试',
       color: '#6366f1',
       glow: 'rgba(99, 102, 241, 0.4)',
-      onClick: () => navigate('/'),
+      onClick: () => navigate('/ai/batches'),
     },
     {
       key: 'user',
@@ -21,7 +21,7 @@ export default function Dashboard() {
       desc: '用户管理 · 邀请码管理 · 权限控制',
       color: '#10b981',
       glow: 'rgba(16, 185, 129, 0.4)',
-      onClick: () => navigate('/users'),
+      onClick: () => navigate('/user/users'),
     },
     {
       key: 'config',

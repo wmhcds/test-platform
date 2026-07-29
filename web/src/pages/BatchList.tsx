@@ -281,8 +281,8 @@ export default function BatchList() {
       title: '操作', key: 'action', width: 260,
       render: (_: unknown, row: BatchSummary) => (
         <Space size={8}>
-          <Button type="link" className="action-btn" onClick={() => navigate(`/batch/${row.id}`)}>查看详情</Button>
-          <Button type="link" className="action-btn" onClick={() => navigate(`/report/${row.id}`)}>查看报告</Button>
+          <Button type="link" className="action-btn" onClick={() => navigate(`/ai/batch/${row.id}`)}>查看详情</Button>
+          <Button type="link" className="action-btn" onClick={() => navigate(`/ai/report/${row.id}`)}>查看报告</Button>
           <Button type="link" className="action-btn rerun-btn" icon={<RedoOutlined />}
             loading={rerunId === row.id} onClick={() => handleRerun(row.id)}>重新执行</Button>
           <Button type="link" style={{ color: '#818cf8' }} icon={<RobotOutlined />}
