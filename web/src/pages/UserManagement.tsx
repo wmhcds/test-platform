@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Card, Button, message, Table, Popconfirm, Space, Typography, Tag, Modal, Input, Select } from 'antd'
-import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
+import { PlusOutlined, DeleteOutlined, EditOutlined, LockOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import api, { UserData } from '../api/client'
 
 const { Title } = Typography
 
 export default function UserManagement() {
+  const isAdmin = localStorage.getItem('auth_role') === 'admin'
+
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -21,6 +23,12 @@ export default function UserManagement() {
   const [roleOpen, setRoleOpen] = useState(false)
   const [editUser, setEditUser] = useState<UserData | null>(null)
   const [editRole, setEditRole] = useState('user')
+
+  // 修改密码
+  const [pwdOpen, setPwdOpen] = useState(false)
+  const [pwdUser, setPwdUser] = useState<UserData | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [pwdSaving, setPwdSaving] = useState(false)
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -83,6 +91,25 @@ export default function UserManagement() {
     }
   }
 
+  const handlePasswordSave = async () => {
+    if (!pwdUser) return
+    if (!newPassword || newPassword.length < 6) {
+      message.warning('密码至少6位')
+      return
+    }
+    setPwdSaving(true)
+    try {
+      await api.updateUserPassword(pwdUser.id, newPassword)
+      message.success('密码已修改')
+      setPwdOpen(false)
+      setNewPassword('')
+    } catch (err: any) {
+      message.error(err.response?.data?.detail || '修改失败')
+    } finally {
+      setPwdSaving(false)
+    }
+  }
+
   const columns = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
     { title: '用户名', dataIndex: 'username', key: 'username' },
@@ -98,7 +125,7 @@ export default function UserManagement() {
     },
     {
       title: '操作', key: 'actions',
-      render: (_: any, record: UserData) => (
+      render: (_: any, record: UserData) => isAdmin ? (
         <Space>
           <Button type="text" icon={<EditOutlined />} size="small" onClick={() => {
             setEditUser(record)
@@ -107,11 +134,18 @@ export default function UserManagement() {
           }}>
             权限
           </Button>
+          <Button type="text" icon={<LockOutlined />} size="small" onClick={() => {
+            setPwdUser(record)
+            setNewPassword('')
+            setPwdOpen(true)
+          }}>
+            密码
+          </Button>
           <Popconfirm title="确认删除该用户？" onConfirm={() => handleDelete(record.id)} okText="删除" cancelText="取消">
             <Button type="text" danger icon={<DeleteOutlined />} size="small" />
           </Popconfirm>
         </Space>
-      ),
+      ) : <span style={{ color: '#94a3b8' }}>-</span>,
     },
   ]
 
@@ -119,11 +153,13 @@ export default function UserManagement() {
     <div>
       <Title level={4} style={{ color: '#f1f5f9', marginBottom: 20 }}>用户管理</Title>
 
-      <Card style={{ background: '#1e293b', borderColor: '#334155', marginBottom: 20 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddOpen(true)}>
-          新增用户
-        </Button>
-      </Card>
+      {isAdmin && (
+        <Card style={{ background: '#1e293b', borderColor: '#334155', marginBottom: 20 }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddOpen(true)}>
+            新增用户
+          </Button>
+        </Card>
+      )}
 
       <Table
         dataSource={users}
@@ -173,6 +209,26 @@ export default function UserManagement() {
             <Select.Option value="user">普通用户</Select.Option>
             <Select.Option value="admin">管理员</Select.Option>
           </Select>
+        </div>
+      </Modal>
+
+      {/* 修改密码弹窗 */}
+      <Modal
+        title={`修改 ${pwdUser?.username} 的密码`}
+        open={pwdOpen}
+        onCancel={() => setPwdOpen(false)}
+        onOk={handlePasswordSave}
+        confirmLoading={pwdSaving}
+        okText="保存" cancelText="取消"
+        styles={{ content: { background: '#1e293b' }, header: { background: '#1e293b' } }}
+      >
+        <div style={{ marginTop: 8 }}>
+          <Input.Password
+            placeholder="新密码（至少6位）"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            onPressEnter={handlePasswordSave}
+          />
         </div>
       </Modal>
     </div>

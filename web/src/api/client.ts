@@ -211,7 +211,7 @@ export const api = {
   setConfig: (key: string, value: string) =>
     http.put(`/config/${key}`, { value }).then((r) => r.data),
 
-  // 用户管理（仅管理员）
+  // 用户管理
   listUsers: () =>
     http.get<UserData[]>('/users').then((r) => r.data),
   createUser: (data: { username: string; password: string; role: string }) =>
@@ -220,6 +220,8 @@ export const api = {
     http.delete(`/users/${id}`).then((r) => r.data),
   updateUserRole: (id: number, role: string) =>
     http.put<UserData>(`/users/${id}/role`, { role }).then((r) => r.data),
+  updateUserPassword: (id: number, password: string) =>
+    http.put<UserData>(`/users/${id}/password`, { password }).then((r) => r.data),
 
   // 邀请码管理（仅管理员）
   listInviteCodes: () =>

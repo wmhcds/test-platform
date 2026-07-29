@@ -14,11 +14,17 @@ from api.routers.auth import get_current_user
 router = APIRouter(prefix="/api/invite-codes", tags=["invite_codes"])
 
 
-def _require_admin(authorization: Optional[str]):
-    """校验是否为管理员。"""
+def _require_login(authorization: Optional[str]):
+    """校验是否已登录，返回当前用户信息。"""
     user = get_current_user(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="未登录")
+    return user
+
+
+def _require_admin(authorization: Optional[str]):
+    """校验是否为管理员。"""
+    user = _require_login(authorization)
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="仅管理员可操作")
     return user
@@ -47,8 +53,8 @@ class GenerateRequest(BaseModel):
 
 @router.get("", response_model=list[InviteCodeOut])
 def list_invite_codes(authorization: Optional[str] = Header(None)):
-    """获取所有邀请码（仅管理员）。"""
-    _require_admin(authorization)
+    """获取所有邀请码（登录用户均可查看）。"""
+    _require_login(authorization)
     db = SessionLocal()
     try:
         codes = db.query(InviteCode).order_by(InviteCode.created_at.desc()).all()

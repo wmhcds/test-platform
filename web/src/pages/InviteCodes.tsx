@@ -7,6 +7,8 @@ import api, { InviteCodeData } from '../api/client'
 const { Title } = Typography
 
 export default function InviteCodes() {
+  const isAdmin = localStorage.getItem('auth_role') === 'admin'
+
   const [codes, setCodes] = useState<InviteCodeData[]>([])
   const [loading, setLoading] = useState(false)
   const [genCount, setGenCount] = useState(1)
@@ -82,29 +84,31 @@ export default function InviteCodes() {
       title: '创建时间', dataIndex: 'created_at', key: 'created_at',
       render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm:ss'),
     },
-    {
+    isAdmin ? {
       title: '操作', key: 'actions',
       render: (_: any, record: InviteCodeData) => (
         <Popconfirm title="确认删除？" onConfirm={() => handleDelete(record.id)} okText="删除" cancelText="取消">
           <Button type="text" danger icon={<DeleteOutlined />} size="small" />
         </Popconfirm>
       ),
-    },
-  ]
+    } : null,
+  ].filter(Boolean) as any[]
 
   return (
     <div>
       <Title level={4} style={{ color: '#f1f5f9', marginBottom: 20 }}>邀请码管理</Title>
 
-      <Card style={{ background: '#1e293b', borderColor: '#334155', marginBottom: 20 }}>
-        <Space>
-          <span style={{ color: '#e2e8f0' }}>生成数量：</span>
-          <InputNumber min={1} max={100} value={genCount} onChange={(v) => setGenCount(v || 1)} style={{ width: 80 }} />
-          <Button type="primary" icon={<PlusOutlined />} loading={generating} onClick={handleGenerate}>
-            生成邀请码
-          </Button>
-        </Space>
-      </Card>
+      {isAdmin && (
+        <Card style={{ background: '#1e293b', borderColor: '#334155', marginBottom: 20 }}>
+          <Space>
+            <span style={{ color: '#e2e8f0' }}>生成数量：</span>
+            <InputNumber min={1} max={100} value={genCount} onChange={(v) => setGenCount(v || 1)} style={{ width: 80 }} />
+            <Button type="primary" icon={<PlusOutlined />} loading={generating} onClick={handleGenerate}>
+              生成邀请码
+            </Button>
+          </Space>
+        </Card>
+      )}
 
       <Table
         dataSource={codes}

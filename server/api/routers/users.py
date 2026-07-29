@@ -12,11 +12,17 @@ from api.routers.auth import get_current_user, hash_password
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
-def _require_admin(authorization: Optional[str]):
-    """校验是否为管理员，返回当前用户信息。"""
+def _require_login(authorization: Optional[str]):
+    """校验是否已登录，返回当前用户信息。"""
     user = get_current_user(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="未登录")
+    return user
+
+
+def _require_admin(authorization: Optional[str]):
+    """校验是否为管理员，返回当前用户信息。"""
+    user = _require_login(authorization)
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="仅管理员可操作")
     return user
@@ -42,10 +48,14 @@ class UpdateRoleRequest(BaseModel):
     role: str
 
 
+class UpdatePasswordRequest(BaseModel):
+    password: str
+
+
 @router.get("", response_model=list[UserOut])
 def list_users(authorization: Optional[str] = Header(None)):
-    """获取所有用户（仅管理员）。"""
-    _require_admin(authorization)
+    """获取所有用户（登录用户均可查看）。"""
+    _require_login(authorization)
     db = SessionLocal()
     try:
         users = db.query(User).order_by(User.created_at.desc()).all()
@@ -117,6 +127,27 @@ def update_role(user_id: int, body: UpdateRoleRequest, authorization: Optional[s
         if not user:
             raise HTTPException(status_code=404, detail="用户不存在")
         user.role = body.role
+        db.commit()
+        db.refresh(user)
+        return user
+    finally:
+        db.close()
+
+
+@router.put("/{user_id}/password", response_model=UserOut)
+def update_password(user_id: int, body: UpdatePasswordRequest, authorization: Optional[str] = Header(None)):
+    """管理员修改指定用户密码。"""
+    _require_admin(authorization)
+    password = body.password.strip()
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="密码至少6位")
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        user.password_hash = hash_password(password)
         db.commit()
         db.refresh(user)
         return user
