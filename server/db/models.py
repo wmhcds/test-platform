@@ -5,6 +5,28 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
+# ---------- 用户表 ----------
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(100), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    role = Column(String(20), default="user")  # admin | user
+    created_at = Column(DateTime, default=func.now())
+
+
+# ---------- 邀请码表 ----------
+class InviteCode(Base):
+    __tablename__ = "invite_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(20), unique=True, nullable=False)
+    is_used = Column(Boolean, default=False)
+    used_by = Column(Integer, nullable=True)  # 使用该邀请码注册的用户ID
+    created_at = Column(DateTime, default=func.now())
+
+
 # ---------- 批次表 ----------
 class TestBatch(Base):
     __tablename__ = "test_batches"

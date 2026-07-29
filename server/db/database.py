@@ -54,6 +54,25 @@ def _get_sqlite_path() -> str:
     return db_path()
 
 
+def _init_default_admin():
+    """确保默认管理员账号存在。"""
+    import hashlib
+    from db.models import User
+    from sqlalchemy.orm import Session
+    session = Session(bind=engine)
+    try:
+        admin = session.query(User).filter(User.username == "admin").first()
+        if not admin:
+            salt = "test_platform_salt"
+            pwd_hash = hashlib.sha256(f"admin123{salt}".encode()).hexdigest()
+            admin = User(username="admin", password_hash=pwd_hash, role="admin")
+            session.add(admin)
+            session.commit()
+            print("  [OK] default admin created (admin / admin123)")
+    finally:
+        session.close()
+
+
 def init_db():
     """初始化数据库，创建所有表，并补充缺失的列。"""
     Base.metadata.create_all(bind=engine)
@@ -62,6 +81,7 @@ def init_db():
         _migrate_sqlite_columns()
 
     init_recycle_bin()
+    _init_default_admin()
 
 
 def _migrate_sqlite_columns():

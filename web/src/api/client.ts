@@ -112,6 +112,21 @@ export interface ConfigData {
   value: string
 }
 
+export interface UserData {
+  id: number
+  username: string
+  role: string
+  created_at: string
+}
+
+export interface InviteCodeData {
+  id: number
+  code: string
+  is_used: boolean
+  used_by: number | null
+  created_at: string
+}
+
 export interface AiAnalysisData {
   batch_id: number
   batch_name: string
@@ -195,6 +210,24 @@ export const api = {
     http.get<ConfigData>(`/config/${key}`).then((r) => r.data),
   setConfig: (key: string, value: string) =>
     http.put(`/config/${key}`, { value }).then((r) => r.data),
+
+  // 用户管理（仅管理员）
+  listUsers: () =>
+    http.get<UserData[]>('/users').then((r) => r.data),
+  createUser: (data: { username: string; password: string; role: string }) =>
+    http.post<UserData>('/users', data).then((r) => r.data),
+  deleteUser: (id: number) =>
+    http.delete(`/users/${id}`).then((r) => r.data),
+  updateUserRole: (id: number, role: string) =>
+    http.put<UserData>(`/users/${id}/role`, { role }).then((r) => r.data),
+
+  // 邀请码管理（仅管理员）
+  listInviteCodes: () =>
+    http.get<InviteCodeData[]>('/invite-codes').then((r) => r.data),
+  generateInviteCodes: (count: number) =>
+    http.post<InviteCodeData[]>('/invite-codes', { count }).then((r) => r.data),
+  deleteInviteCode: (id: number) =>
+    http.delete(`/invite-codes/${id}`).then((r) => r.data),
 }
 
 export default api

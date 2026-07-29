@@ -20,6 +20,8 @@ export default function AppLayout({ children, onLogout }: Props) {
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
 
+  const isAdmin = localStorage.getItem('auth_role') === 'admin'
+
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem('auth_token') || ''
@@ -31,6 +33,7 @@ export default function AppLayout({ children, onLogout }: Props) {
       // ignore
     } finally {
       localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth_role')
       onLogout()
       message.success('已退出登录')
     }
@@ -126,6 +129,10 @@ export default function AppLayout({ children, onLogout }: Props) {
             { key: '/', icon: '📋', label: '测试批次列表' },
             { key: '/test-cases', icon: '🧪', label: '测试用例管理' },
             { key: '/http', icon: '🌐', label: 'HTTP请求' },
+            ...(isAdmin ? [
+              { key: '/invite-codes', icon: '🔑', label: '邀请码管理' },
+              { key: '/users', icon: '👥', label: '用户管理' },
+            ] : []),
           ]}
         />
 

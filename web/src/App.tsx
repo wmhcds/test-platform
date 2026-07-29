@@ -6,6 +6,8 @@ import BatchDetail from './pages/BatchDetail'
 import Report from './pages/Report'
 import HttpClient from './pages/HttpClient'
 import TestCaseManager from './pages/TestCaseManager'
+import InviteCodes from './pages/InviteCodes'
+import UserManagement from './pages/UserManagement'
 import Login from './pages/Login'
 
 function getToken(): string | null {
@@ -17,6 +19,7 @@ export default function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token')
+    localStorage.removeItem('auth_role')
     setToken(null)
   }
 
@@ -32,6 +35,8 @@ export default function App() {
         <Route path="/report/:id" element={<Report />} />
         <Route path="/http" element={<HttpClient />} />
         <Route path="/test-cases" element={<TestCaseManager />} />
+        <Route path="/invite-codes" element={<InviteCodes />} />
+        <Route path="/users" element={<UserManagement />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppLayout>
