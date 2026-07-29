@@ -152,94 +152,97 @@ export default function AppLayout({ children, onLogout }: Props) {
     : dashboardMenuItems
 
   const menuItems = activeModule ? moduleMenuItems : dashboardMenuItems
+  const isDashboard = location.pathname === '/dashboard'
 
   return (
     <Layout style={{ minHeight: '100vh', background: 'transparent' }}>
-      <Sider
-        width={220}
-        breakpoint="md"
-        collapsedWidth={64}
-        trigger={null}
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        style={{
-          background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',
-          borderRight: '1px solid rgba(148,163,184,0.12)',
-          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-          overflow: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        {/* Logo 区域 */}
-        <div
+      {!isDashboard && (
+        <Sider
+          width={220}
+          breakpoint="md"
+          collapsedWidth={64}
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
           style={{
+            background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',
+            borderRight: '1px solid rgba(148,163,184,0.12)',
+            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            overflow: 'auto',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            gap: 10,
-            height: 56,
-            padding: collapsed ? '0 12px' : '0 20px',
-            borderBottom: '1px solid rgba(148,163,184,0.14)',
-            flexShrink: 0,
-            cursor: 'pointer',
+            flexDirection: 'column',
           }}
-          onClick={() => navigate('/dashboard')}
         >
-          <span style={{ fontSize: 20 }}>🚀</span>
-          {!collapsed && (
-            <span style={{ color: '#f1f5f9', fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: 0.3 }}>
-              AI测试平台
-            </span>
-          )}
-        </div>
-
-        {/* 折叠按钮 */}
-        <div style={{ textAlign: 'center', paddingTop: 8, paddingBottom: 4 }}>
-          <Tooltip title={collapsed ? '展开菜单' : '收起菜单'}>
-            <Button
-              type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
-              size="small"
-              style={{ color: '#cbd5e1', borderRadius: 8 }}
-            />
-          </Tooltip>
-        </div>
-
-        {/* 模块返回按钮（在模块内时显示） */}
-        {activeModule && !collapsed && (
-          <div style={{ padding: '0 16px', marginBottom: 8 }}>
-            <Button
-              type="text"
-              block
-              icon={<LeftOutlined />}
-              onClick={() => navigate('/dashboard')}
-              style={{
-                color: activeModule.color,
-                background: 'rgba(255,255,255,0.04)',
-                borderRadius: 10,
-                textAlign: 'left',
-                fontWeight: 500,
-              }}
-            >
-              返回控制台
-            </Button>
+          {/* Logo 区域 */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              gap: 10,
+              height: 56,
+              padding: collapsed ? '0 12px' : '0 20px',
+              borderBottom: '1px solid rgba(148,163,184,0.14)',
+              flexShrink: 0,
+              cursor: 'pointer',
+            }}
+            onClick={() => navigate('/dashboard')}
+          >
+            <span style={{ fontSize: 20 }}>🚀</span>
+            {!collapsed && (
+              <span style={{ color: '#f1f5f9', fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: 0.3 }}>
+                AI测试平台
+              </span>
+            )}
           </div>
-        )}
 
-        {/* 导航菜单 */}
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          onClick={({ key }) => navigate(key)}
-          inlineCollapsed={collapsed}
-          style={{ background: 'transparent', borderRight: 0, flex: 1 }}
-          items={menuItems}
-        />
-      </Sider>
+          {/* 折叠按钮 */}
+          <div style={{ textAlign: 'center', paddingTop: 8, paddingBottom: 4 }}>
+            <Tooltip title={collapsed ? '展开菜单' : '收起菜单'}>
+              <Button
+                type="text"
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={() => setCollapsed(!collapsed)}
+                size="small"
+                style={{ color: '#cbd5e1', borderRadius: 8 }}
+              />
+            </Tooltip>
+          </div>
+
+          {/* 模块返回按钮（在模块内时显示） */}
+          {activeModule && !collapsed && (
+            <div style={{ padding: '0 16px', marginBottom: 8 }}>
+              <Button
+                type="text"
+                block
+                icon={<LeftOutlined />}
+                onClick={() => navigate('/dashboard')}
+                style={{
+                  color: activeModule.color,
+                  background: 'rgba(255,255,255,0.04)',
+                  borderRadius: 10,
+                  textAlign: 'left',
+                  fontWeight: 500,
+                }}
+              >
+                返回控制台
+              </Button>
+            </div>
+          )}
+
+          {/* 导航菜单 */}
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={[selectedKey]}
+            onClick={({ key }) => navigate(key)}
+            inlineCollapsed={collapsed}
+            style={{ background: 'transparent', borderRight: 0, flex: 1 }}
+            items={menuItems}
+          />
+        </Sider>
+      )}
 
       <Layout>
         {/* 顶部栏：用户名 + 退出登录 */}
