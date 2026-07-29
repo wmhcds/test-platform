@@ -37,8 +37,6 @@ class HttpRequestConfigBase(BaseModel):
         v = v.strip()
         if not v:
             raise ValueError("URL 不能为空")
-        if not (v.startswith("http://") or v.startswith("https://") or v.startswith("/")):
-            raise ValueError("URL 必须以 http://、https:// 或 / 开头")
         return v
 
 
@@ -63,8 +61,6 @@ class HttpRequestConfigUpdate(BaseModel):
         v = v.strip()
         if not v:
             raise ValueError("URL 不能为空")
-        if not (v.startswith("http://") or v.startswith("https://") or v.startswith("/")):
-            raise ValueError("URL 必须以 http://、https:// 或 / 开头")
         return v
 
 

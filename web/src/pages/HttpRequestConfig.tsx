@@ -144,11 +144,6 @@ export default function HttpRequestConfigPage() {
       message.warning('请求 URL 为必填项')
       return false
     }
-    const url = form.url.trim()
-    if (!/^https?:\/\//.test(url) && !url.startsWith('/')) {
-      message.warning('URL 必须以 http://、https:// 或 / 开头')
-      return false
-    }
     if (form.body_type === 'json' && form.body.trim()) {
       try {
         JSON.parse(form.body)
@@ -198,10 +193,15 @@ export default function HttpRequestConfigPage() {
         if (h.key.trim()) headerObj[h.key.trim()] = h.value
       })
 
+      let url = form.url.trim()
+      if (!/^https?:\/\//.test(url) && !url.startsWith('/')) {
+        url = `http://${url}`
+      }
+
       const formData = new FormData()
       formData.append('method', form.method)
       formData.append('login_type', '')
-      formData.append('url', form.url.trim())
+      formData.append('url', url)
       if (Object.keys(headerObj).length) {
         formData.append('headers', JSON.stringify(headerObj))
       }
@@ -250,6 +250,12 @@ export default function HttpRequestConfigPage() {
     return map[m] || 'default'
   }
 
+  const inputStyle = {
+    background: 'rgba(30, 41, 59, 0.7)',
+    borderColor: 'rgba(148,163,184,0.15)',
+    color: '#fff',
+  }
+
   return (
     <div className="http-request-config-page">
       <Title level={4} style={{ color: '#f1f5f9', marginBottom: 16 }}>
@@ -257,11 +263,12 @@ export default function HttpRequestConfigPage() {
         请求报文配置
       </Title>
 
-      <Space align="start" style={{ width: '100%' }} size="middle">
+      <div style={{ display: 'flex', gap: 16, width: '100%', alignItems: 'flex-start' }}>
         {/* 左侧配置列表 */}
         <Card
           style={{
-            width: 320,
+            width: 360,
+            flexShrink: 0,
             background: 'rgba(17, 25, 40, 0.75)',
             border: '1px solid rgba(148, 163, 184, 0.1)',
           }}
@@ -285,7 +292,7 @@ export default function HttpRequestConfigPage() {
               placeholder="搜索名称 / URL / 方法"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ background: 'rgba(30, 41, 59, 0.7)', borderColor: 'rgba(148,163,184,0.15)' }}
+              style={inputStyle}
             />
           </Space>
 
@@ -350,6 +357,7 @@ export default function HttpRequestConfigPage() {
         <Card
           style={{
             flex: 1,
+            minWidth: 0,
             background: 'rgba(17, 25, 40, 0.75)',
             border: '1px solid rgba(148, 163, 184, 0.1)',
           }}
@@ -360,7 +368,7 @@ export default function HttpRequestConfigPage() {
               placeholder="配置名称（必填，如：登录接口）"
               value={form.name}
               onChange={(e) => updateField('name', e.target.value)}
-              style={{ background: 'rgba(30, 41, 59, 0.7)', borderColor: 'rgba(148,163,184,0.15)' }}
+              style={inputStyle}
             />
 
             <Space.Compact style={{ width: '100%' }}>
@@ -368,13 +376,13 @@ export default function HttpRequestConfigPage() {
                 value={form.method}
                 onChange={(v) => updateField('method', v)}
                 options={METHOD_OPTIONS.map((m) => ({ value: m, label: m }))}
-                style={{ width: 110 }}
+                style={{ width: 110, color: '#fff' }}
               />
               <Input
-                placeholder="https://example.com/api/login 或 /api/login（必填）"
+                placeholder="example.com/api/login 或 /api/login（必填）"
                 value={form.url}
                 onChange={(e) => updateField('url', e.target.value)}
-                style={{ flex: 1 }}
+                style={{ flex: 1, ...inputStyle }}
               />
             </Space.Compact>
 
@@ -402,13 +410,13 @@ export default function HttpRequestConfigPage() {
                         placeholder="Header 名称"
                         value={h.key}
                         onChange={(e) => updateHeader(idx, 'key', e.target.value)}
-                        style={{ width: '35%' }}
+                        style={{ width: '35%', ...inputStyle }}
                       />
                       <Input
                         placeholder="Header 值"
                         value={h.value}
                         onChange={(e) => updateHeader(idx, 'value', e.target.value)}
-                        style={{ flex: 1 }}
+                        style={{ flex: 1, ...inputStyle }}
                       />
                       <Button danger icon={<DeleteOutlined />} onClick={() => removeHeader(idx)} />
                     </Space.Compact>
@@ -424,7 +432,7 @@ export default function HttpRequestConfigPage() {
                   value={form.body_type}
                   onChange={(v) => updateField('body_type', v)}
                   options={BODY_TYPE_OPTIONS}
-                  style={{ width: 180 }}
+                  style={{ width: 180, color: '#fff' }}
                   size="small"
                 />
               </div>
@@ -438,7 +446,7 @@ export default function HttpRequestConfigPage() {
                   }
                   value={form.body}
                   onChange={(e) => updateField('body', e.target.value)}
-                  style={{ background: 'rgba(30, 41, 59, 0.7)', borderColor: 'rgba(148,163,184,0.15)' }}
+                  style={inputStyle}
                 />
               )}
             </div>
@@ -448,7 +456,7 @@ export default function HttpRequestConfigPage() {
               placeholder="描述（选填）"
               value={form.description}
               onChange={(e) => updateField('description', e.target.value)}
-              style={{ background: 'rgba(30, 41, 59, 0.7)', borderColor: 'rgba(148,163,184,0.15)' }}
+              style={inputStyle}
             />
 
             <Space>
@@ -499,7 +507,7 @@ export default function HttpRequestConfigPage() {
             </Card>
           </Space>
         </Card>
-      </Space>
+      </div>
     </div>
   )
 }

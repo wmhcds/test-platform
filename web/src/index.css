@@ -1080,4 +1080,14 @@ body {
   background: rgba(99, 102, 241, 0.15) !important;
 }
 
+/* ==================== 请求报文配置页 ==================== */
+.http-request-config-page input::placeholder,
+.http-request-config-page textarea::placeholder {
+  color: rgba(148, 163, 184, 0.55) !important;
+}
+
+.http-request-config-page .ant-select-selection-item {
+  color: #fff !important;
+}
+
 
