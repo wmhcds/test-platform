@@ -454,18 +454,18 @@ export default function TestCaseManager() {
                   批量恢复 ({selectedIds.length})
                 </Button>
                 <Button icon={<DeleteFilled />} onClick={handleBatchPermanentDelete} loading={batchPermanenting}
-                  disabled={selectedIds.length === 0} danger>
+                  disabled={selectedIds.length === 0} style={{ color: '#ef4444', borderColor: '#ef4444' }}>
                   批量永久删除 ({selectedIds.length})
                 </Button>
               </>
             ) : (
               <>
                 <Button icon={<DeleteOutlined />} onClick={handleBatchDelete} loading={batchDeleting}
-                  disabled={selectedIds.length === 0} danger>
+                  disabled={selectedIds.length === 0} style={{ color: '#ef4444', borderColor: '#ef4444' }}>
                   批量删除 ({selectedIds.length})
                 </Button>
                 <Button icon={<SwapOutlined />} onClick={() => { setMigrateTargetId(undefined); setMigrateModalOpen(true) }}
-                  disabled={selectedIds.length === 0} style={{ color: '#f59e0b', borderColor: '#f59e0b' }}>
+                  disabled={selectedIds.length === 0} style={{ color: '#ef4444', borderColor: '#ef4444' }}>
                   迁移 ({selectedIds.length})
                 </Button>
                 <Button icon={<ThunderboltOutlined />} onClick={handleBatchExecute} loading={batchExecuting}
