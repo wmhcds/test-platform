@@ -78,8 +78,11 @@ export interface CaseSourceData {
 export interface TestCaseCategoryData {
   id: number
   name: string
+  parent_id: number | null
+  level: number
   case_count: number
   is_system: boolean
+  children: TestCaseCategoryData[]
   created_at: string
 }
 
@@ -146,8 +149,8 @@ export const api = {
   // 目录管理
   listCategories: () =>
     http.get<TestCaseCategoryData[]>('/test-cases/categories').then((r) => r.data),
-  createCategory: (name: string) =>
-    http.post<TestCaseCategoryData>('/test-cases/categories', { name }).then((r) => r.data),
+  createCategory: (name: string, parentId?: number) =>
+    http.post<TestCaseCategoryData>('/test-cases/categories', { name, parent_id: parentId || null }).then((r) => r.data),
   updateCategory: (id: number, name: string) =>
     http.put<TestCaseCategoryData>(`/test-cases/categories/${id}`, { name }).then((r) => r.data),
   deleteCategory: (id: number) =>

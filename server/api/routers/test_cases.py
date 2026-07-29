@@ -53,8 +53,11 @@ class TestCaseOut(BaseModel):
 class CategoryOut(BaseModel):
     id: int
     name: str
+    parent_id: Optional[int] = None
+    level: int = 1
     case_count: int = 0
     is_system: bool = False
+    children: list["CategoryOut"] = []
     created_at: datetime
 
     class Config:
@@ -63,6 +66,7 @@ class CategoryOut(BaseModel):
 
 class CategoryCreate(BaseModel):
     name: str
+    parent_id: Optional[int] = None
 
 
 class ExecuteResult(BaseModel):
@@ -115,6 +119,74 @@ def _get_recycle_bin(db):
     ).first()
 
 
+def _get_descendant_ids(db, cat_id: int) -> list[int]:
+    """递归获取某个目录的所有子孙目录ID（不含自身）。"""
+    ids = []
+    children = db.query(TestCaseCategory).filter(
+        TestCaseCategory.parent_id == cat_id,
+        TestCaseCategory.is_deleted == False,
+    ).all()
+    for c in children:
+        ids.append(c.id)
+        ids.extend(_get_descendant_ids(db, c.id))
+    return ids
+
+
+def _get_all_descendant_ids(db, cat_id: int) -> list[int]:
+    """递归获取某个目录的所有子孙目录ID（含自身）。"""
+    return [cat_id] + _get_descendant_ids(db, cat_id)
+
+
+def _get_level(db, parent_id: Optional[int]) -> int:
+    """计算目录层级：无父目录为1，否则为父目录level+1。"""
+    if parent_id is None:
+        return 1
+    parent = db.query(TestCaseCategory).filter(TestCaseCategory.id == parent_id).first()
+    return (parent.level if parent else 1) + 1
+
+
+def _build_category_tree(cats: list[TestCaseCategory], db, recycle, include_root_only: bool = True) -> list:
+    """将分类列表构建为树结构。include_root_only=True 只返回一级目录。"""
+    cat_map = {c.id: c for c in cats}
+    result = []
+    child_ids_map: dict[int, list] = {}
+
+    for c in cats:
+        pid = c.parent_id
+        if pid not in child_ids_map:
+            child_ids_map[pid] = []
+        child_ids_map[pid].append(c)
+
+    def _count_direct_cases(cat):
+        return db.query(TestCase).filter(
+            TestCase.category_id == cat.id,
+            TestCase.original_category_id == None,
+        ).count()
+
+    def _build_node(cat):
+        node = CategoryOut(
+            id=cat.id, name=cat.name, parent_id=cat.parent_id, level=cat.level,
+            case_count=_count_direct_cases(cat),
+            is_system=cat.is_system,
+            children=[],
+            created_at=cat.created_at,
+        )
+        if cat.id in child_ids_map:
+            for child in child_ids_map[cat.id]:
+                node.children.append(_build_node(child))
+        return node
+
+    if include_root_only:
+        # 只返回根节点（parent_id is None 的非系统目录）
+        for c in cats:
+            if c.parent_id is None:
+                result.append(_build_node(c))
+    else:
+        for c in cats:
+            result.append(_build_node(c))
+    return result
+
+
 # ---- COS 辅助函数 ----
 def _upload_script_cos(name: str, content: str) -> bool:
     if not _cos_enabled():
@@ -153,28 +225,21 @@ def _delete_script_cos(name: str) -> bool:
 def list_categories(include_deleted: bool = Query(False)):
     with db_session() as db:
         recycle = _get_recycle_bin(db)
-        # 普通目录：非系统、非删除
+        # 普通目录：非系统
         q = db.query(TestCaseCategory).filter(
             TestCaseCategory.is_system == False,
         )
         if not include_deleted:
             q = q.filter(TestCaseCategory.is_deleted == False)
         cats = q.order_by(TestCaseCategory.name).all()
-        result = []
+        tree = _build_category_tree(cats, db, recycle, include_root_only=True)
+        # 补充已删除目录的 case_count
         for c in cats:
-            count = db.query(TestCase).filter(
-                TestCase.category_id == c.id,
-                TestCase.original_category_id == None,
-            ).count()
-            deleted_count = db.query(TestCase).filter(
-                TestCase.original_category_id == c.id,
-                TestCase.category_id == recycle.id if recycle else -1,
-            ).count()
-            result.append(CategoryOut(
-                id=c.id, name=c.name,
-                case_count=count if not c.is_deleted else deleted_count,
-                is_system=False, created_at=c.created_at,
-            ))
+            if c.is_deleted and recycle:
+                c.case_count_in_tree = db.query(TestCase).filter(
+                    TestCase.original_category_id == c.id,
+                    TestCase.category_id == recycle.id,
+                ).count()
         # 回收站
         if recycle:
             recycle_count = db.query(TestCase).filter(
@@ -184,12 +249,13 @@ def list_categories(include_deleted: bool = Query(False)):
                 TestCaseCategory.is_system == False,
                 TestCaseCategory.is_deleted == True,
             ).count()
-            result.append(CategoryOut(
-                id=recycle.id, name=recycle.name,
+            tree.append(CategoryOut(
+                id=recycle.id, name=recycle.name, parent_id=None, level=1,
                 case_count=recycle_count + deleted_cat_count,
-                is_system=True, created_at=recycle.created_at,
+                is_system=True, children=[],
+                created_at=recycle.created_at,
             ))
-        return result
+        return tree
 
 
 @router.post("/categories", response_model=CategoryOut)
@@ -200,14 +266,41 @@ def create_category(body: CategoryCreate):
     if name == "回收站":
         raise HTTPException(status_code=400, detail="不能创建与回收站同名的目录")
     with db_session() as db:
-        if db.query(TestCaseCategory).filter(TestCaseCategory.name == name).first():
-            raise HTTPException(status_code=409, detail=f"目录 '{name}' 已存在")
-        cat = TestCaseCategory(name=name)
+        # 验证父目录
+        if body.parent_id is not None:
+            parent = db.query(TestCaseCategory).filter(
+                TestCaseCategory.id == body.parent_id,
+                TestCaseCategory.is_system == False,
+                TestCaseCategory.is_deleted == False,
+            ).first()
+            if not parent:
+                raise HTTPException(status_code=404, detail="父目录不存在")
+            level = parent.level + 1
+            if level > 3:
+                raise HTTPException(status_code=400, detail="最多支持3级目录")
+        else:
+            level = 1
+
+        # 同名检查：同一父目录下名称不可重复
+        dup_q = db.query(TestCaseCategory).filter(
+            TestCaseCategory.name == name,
+            TestCaseCategory.is_system == False,
+        )
+        if body.parent_id is not None:
+            dup_q = dup_q.filter(TestCaseCategory.parent_id == body.parent_id)
+        else:
+            dup_q = dup_q.filter(TestCaseCategory.parent_id == None)
+        if dup_q.first():
+            raise HTTPException(status_code=409, detail=f"当前目录下已存在 '{name}'")
+
+        cat = TestCaseCategory(name=name, parent_id=body.parent_id, level=level)
         db.add(cat)
         db.commit()
         db.refresh(cat)
-        return CategoryOut(id=cat.id, name=cat.name, case_count=0,
-                           is_system=False, created_at=cat.created_at)
+        return CategoryOut(id=cat.id, name=cat.name, parent_id=cat.parent_id,
+                           level=cat.level, case_count=0,
+                           is_system=False, children=[],
+                           created_at=cat.created_at)
 
 
 @router.put("/categories/{cat_id}", response_model=CategoryOut)
@@ -221,11 +314,18 @@ def update_category(cat_id: int, body: CategoryCreate):
             raise HTTPException(status_code=404, detail="目录不存在")
         if cat.is_system:
             raise HTTPException(status_code=403, detail="系统目录不可修改")
-        dup = db.query(TestCaseCategory).filter(
-            TestCaseCategory.name == name, TestCaseCategory.id != cat_id
-        ).first()
-        if dup:
-            raise HTTPException(status_code=409, detail=f"目录 '{name}' 已存在")
+        # 同一父目录下名称不可重复
+        dup_q = db.query(TestCaseCategory).filter(
+            TestCaseCategory.name == name,
+            TestCaseCategory.id != cat_id,
+            TestCaseCategory.is_system == False,
+        )
+        if cat.parent_id is not None:
+            dup_q = dup_q.filter(TestCaseCategory.parent_id == cat.parent_id)
+        else:
+            dup_q = dup_q.filter(TestCaseCategory.parent_id == None)
+        if dup_q.first():
+            raise HTTPException(status_code=409, detail=f"当前目录下已存在 '{name}'")
         cat.name = name
         db.commit()
         db.refresh(cat)
@@ -233,13 +333,15 @@ def update_category(cat_id: int, body: CategoryCreate):
             TestCase.category_id == cat.id,
             TestCase.original_category_id == None,
         ).count()
-        return CategoryOut(id=cat.id, name=cat.name, case_count=count,
-                           is_system=False, created_at=cat.created_at)
+        return CategoryOut(id=cat.id, name=cat.name, parent_id=cat.parent_id,
+                           level=cat.level, case_count=count,
+                           is_system=False, children=[],
+                           created_at=cat.created_at)
 
 
 @router.delete("/categories/{cat_id}")
 def delete_category(cat_id: int):
-    """软删除目录：将目录和其下用例移入回收站。"""
+    """软删除目录：将目录及其子孙目录、其下用例移入回收站。"""
     with db_session() as db:
         cat = db.query(TestCaseCategory).filter(TestCaseCategory.id == cat_id).first()
         if not cat:
@@ -250,21 +352,26 @@ def delete_category(cat_id: int):
         if not recycle:
             raise HTTPException(status_code=500, detail="回收站不存在，请重启服务初始化")
 
-        # 将该目录下的所有用例移入回收站，记录原目录
-        cases = db.query(TestCase).filter(TestCase.category_id == cat_id).all()
+        # 收集所有子孙目录ID（含自身）
+        all_ids = _get_all_descendant_ids(db, cat_id)
+
+        # 将所有这些目录下的用例移入回收站
+        cases = db.query(TestCase).filter(TestCase.category_id.in_(all_ids)).all()
         for tc in cases:
             tc.original_category_id = tc.category_id
             tc.category_id = recycle.id
 
-        # 软删除该目录
-        cat.is_deleted = True
+        # 软删除所有相关目录
+        db.query(TestCaseCategory).filter(TestCaseCategory.id.in_(all_ids)).update(
+            {TestCaseCategory.is_deleted: True}, synchronize_session=False
+        )
         db.commit()
-        return {"ok": True, "detail": f"目录 '{cat.name}' 及 {len(cases)} 个用例已移入回收站"}
+        return {"ok": True, "detail": f"目录 '{cat.name}' 及其 {len(all_ids) - 1} 个子目录、{len(cases)} 个用例已移入回收站"}
 
 
 @router.post("/categories/{cat_id}/restore")
 def restore_category(cat_id: int):
-    """从回收站恢复目录及该目录下的所有用例。"""
+    """从回收站恢复目录及其子孙目录、其下所有用例。"""
     with db_session() as db:
         cat = db.query(TestCaseCategory).filter(TestCaseCategory.id == cat_id).first()
         if not cat:
@@ -273,24 +380,36 @@ def restore_category(cat_id: int):
             raise HTTPException(status_code=400, detail="该目录未被删除，无需恢复")
         recycle = _get_recycle_bin(db)
 
-        # 恢复该目录下原属于它的用例
+        # 收集自身及所有被软删除的子孙目录ID
+        all_ids = [cat_id]
+        children = db.query(TestCaseCategory).filter(
+            TestCaseCategory.parent_id == cat_id,
+        ).all()
+        for c in children:
+            all_ids.extend(_get_all_descendant_ids(db, c.id))
+
+        # 恢复所有相关目录
+        db.query(TestCaseCategory).filter(TestCaseCategory.id.in_(all_ids)).update(
+            {TestCaseCategory.is_deleted: False}, synchronize_session=False
+        )
+
+        # 恢复这些目录下的用例
         if recycle:
             cases = db.query(TestCase).filter(
-                TestCase.original_category_id == cat_id,
+                TestCase.original_category_id.in_(all_ids),
                 TestCase.category_id == recycle.id,
             ).all()
             for tc in cases:
                 tc.category_id = tc.original_category_id
                 tc.original_category_id = None
 
-        cat.is_deleted = False
         db.commit()
         return {"ok": True, "detail": f"目录 '{cat.name}' 已恢复"}
 
 
 @router.delete("/categories/{cat_id}/permanent")
 def permanent_delete_category(cat_id: int):
-    """永久删除目录及其下所有用例（需在回收站内操作）。"""
+    """永久删除目录及其子孙目录、其下所有用例（需在回收站内操作）。"""
     with db_session() as db:
         cat = db.query(TestCaseCategory).filter(TestCaseCategory.id == cat_id).first()
         if not cat:
@@ -299,15 +418,30 @@ def permanent_delete_category(cat_id: int):
             raise HTTPException(status_code=403, detail="系统目录不可删除")
         recycle = _get_recycle_bin(db)
 
-        # 永久删除该目录下的所有用例（在回收站中的）
+        # 收集自身及所有子孙目录ID
+        all_ids = [cat_id]
+        children = db.query(TestCaseCategory).filter(
+            TestCaseCategory.parent_id == cat_id,
+        ).all()
+        for c in children:
+            all_ids.extend(_get_all_descendant_ids(db, c.id))
+
+        # 永久删除这些目录下的所有用例（在回收站中的）
         if recycle:
             cases = db.query(TestCase).filter(
-                TestCase.original_category_id == cat_id,
+                TestCase.original_category_id.in_(all_ids),
                 TestCase.category_id == recycle.id,
             ).all()
             for tc in cases:
                 _delete_script_cos(tc.name)
                 db.delete(tc)
+
+        # 删除子孙目录
+        for cid in all_ids:
+            if cid != cat_id:
+                c = db.query(TestCaseCategory).filter(TestCaseCategory.id == cid).first()
+                if c:
+                    db.delete(c)
 
         db.delete(cat)
         db.commit()
@@ -332,8 +466,10 @@ def list_deleted_categories():
                     TestCase.category_id == recycle.id,
                 ).count()
             result.append(CategoryOut(
-                id=c.id, name=c.name, case_count=count,
-                is_system=False, created_at=c.created_at,
+                id=c.id, name=c.name, parent_id=c.parent_id,
+                level=c.level, case_count=count,
+                is_system=False, children=[],
+                created_at=c.created_at,
             ))
         return result
 

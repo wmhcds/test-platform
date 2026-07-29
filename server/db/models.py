@@ -46,12 +46,15 @@ class TestCaseCategory(Base):
     __tablename__ = "test_case_categories"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), unique=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    parent_id = Column(Integer, ForeignKey("test_case_categories.id"), nullable=True)
+    level = Column(Integer, default=1)            # 层级：1=根目录, 2=子目录, 3=孙目录, 最多3级
     is_system = Column(Boolean, default=False)   # 系统目录（如回收站），不可删除/重命名
     is_deleted = Column(Boolean, default=False)  # 软删除标记
     created_at = Column(DateTime, default=func.now())
 
     cases = relationship("TestCase", back_populates="category")
+    children = relationship("TestCaseCategory", backref="parent", remote_side=[id], order_by="TestCaseCategory.name")
 
 # ---------- 测试用例管理表 ----------
 class TestCase(Base):

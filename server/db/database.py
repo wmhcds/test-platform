@@ -108,6 +108,12 @@ def _migrate_sqlite_columns():
     if "is_deleted" not in cat_columns:
         cursor.execute("ALTER TABLE test_case_categories ADD COLUMN is_deleted BOOLEAN DEFAULT 0")
         print("  [OK] auto-add column: test_case_categories.is_deleted")
+    if "parent_id" not in cat_columns:
+        cursor.execute("ALTER TABLE test_case_categories ADD COLUMN parent_id INTEGER")
+        print("  [OK] auto-add column: test_case_categories.parent_id")
+    if "level" not in cat_columns:
+        cursor.execute("ALTER TABLE test_case_categories ADD COLUMN level INTEGER DEFAULT 1")
+        print("  [OK] auto-add column: test_case_categories.level")
 
     conn.commit()
     conn.close()

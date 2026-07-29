@@ -8,6 +8,7 @@ import {
   PlayCircleOutlined, SearchOutlined, ThunderboltOutlined,
   FolderAddOutlined, FolderOutlined, AppstoreOutlined,
   UndoOutlined, SwapOutlined, DeleteFilled,
+  CaretRightOutlined, CaretDownOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import api, { TestCaseData, TestCaseCategoryData, ExecuteResultData } from '../api/client'
@@ -29,6 +30,8 @@ export default function TestCaseManager() {
   const [editingCat, setEditingCat] = useState<TestCaseCategoryData | null>(null)
   const [catName, setCatName] = useState('')
   const [catSaving, setCatSaving] = useState(false)
+  const [catParentId, setCatParentId] = useState<number | undefined>(undefined)
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
 
   // 回收站相关
   const [deletedCategories, setDeletedCategories] = useState<TestCaseCategoryData[]>([])
@@ -91,15 +94,17 @@ export default function TestCaseManager() {
   useEffect(() => { fetchData() }, [search, activeCategory])
 
   // ---------- 目录操作 ----------
-  const openCatCreate = () => {
+  const openCatCreate = (parentId?: number) => {
     setEditingCat(null)
     setCatName('')
+    setCatParentId(parentId)
     setCatModalOpen(true)
   }
 
   const openCatEdit = (cat: TestCaseCategoryData) => {
     setEditingCat(cat)
     setCatName(cat.name)
+    setCatParentId(undefined)
     setCatModalOpen(true)
   }
 
@@ -111,7 +116,7 @@ export default function TestCaseManager() {
         await api.updateCategory(editingCat.id, catName.trim())
         message.success('修改成功')
       } else {
-        await api.createCategory(catName.trim())
+        await api.createCategory(catName.trim(), catParentId)
         message.success('创建成功')
       }
       setCatModalOpen(false)
@@ -146,6 +151,57 @@ export default function TestCaseManager() {
       loadCategories()
       fetchData()
     } catch (err: any) { message.error(err.response?.data?.detail || '删除失败') }
+  }
+
+  // 展开/折叠目录
+  const toggleExpand = (id: number) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id) else next.add(id)
+      return next
+    })
+  }
+
+  // 递归收集所有目录ID（含子孙），用于筛选时包含子目录
+  const collectAllCategoryIds = (cats: TestCaseCategoryData[]): number[] => {
+    const ids: number[] = []
+    const walk = (list: TestCaseCategoryData[]) => {
+      for (const c of list) {
+        ids.push(c.id)
+        if (c.children && c.children.length > 0) walk(c.children)
+      }
+    }
+    walk(cats)
+    return ids
+  }
+
+  // 获取目录的完整路径（从根到当前）
+  const getCategoryPath = (catId: number | undefined, cats: TestCaseCategoryData[]): string => {
+    if (catId === undefined) return '根目录'
+    const findParent = (id: number, list: TestCaseCategoryData[], path: string[]): string[] | null => {
+      for (const c of list) {
+        if (c.id === id) return [...path, c.name]
+        if (c.children && c.children.length > 0) {
+          const r = findParent(id, c.children, [...path, c.name])
+          if (r) return r
+        }
+      }
+      return null
+    }
+    const p = findParent(catId, cats, [])
+    return p ? p.join(' / ') : '根目录'
+  }
+
+  // 递归列出所有目录（用于选择器）
+  const getFlatCategories = (cats: TestCaseCategoryData[], depth: number = 0): { value: number; label: string; level: number }[] => {
+    const result: { value: number; label: string; level: number }[] = []
+    for (const c of cats) {
+      result.push({ value: c.id, label: '\u00A0\u00A0'.repeat(depth) + c.name, level: c.level })
+      if (c.children && c.children.length > 0) {
+        result.push(...getFlatCategories(c.children, depth + 1))
+      }
+    }
+    return result
   }
 
   // ---------- 用例操作 ----------
@@ -354,17 +410,87 @@ export default function TestCaseManager() {
 
   const cardBodyStyle = { background: '#1e293b' }
 
+  // ---- 递归渲染目录树 ----
+  const renderCategoryTree = (cats: TestCaseCategoryData[], depth: number = 0) => {
+    return cats.filter(c => !c.is_system).map((cat) => {
+      const isActive = activeCategory === cat.id
+      const isExpanded = expandedIds.has(cat.id)
+      const hasChildren = cat.children && cat.children.length > 0
+      const canAddChild = cat.level < 3
+
+      return (
+        <div key={cat.id}>
+          <div
+            onClick={() => setActiveCategory(cat.id)}
+            style={{
+              padding: '6px 12px 6px ' + (12 + depth * 16) + 'px',
+              borderRadius: 6, cursor: 'pointer', marginBottom: 2,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              background: isActive ? 'rgba(129,140,248,0.15)' : 'transparent',
+              color: isActive ? '#818cf8' : '#e2e8f0',
+              fontSize: 13,
+            }}
+          >
+            <span style={{ fontWeight: isActive ? 600 : 400, display: 'flex', alignItems: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
+              {hasChildren ? (
+                <span onClick={(e) => { e.stopPropagation(); toggleExpand(cat.id) }}
+                  style={{ marginRight: 4, cursor: 'pointer', color: '#94a3b8', fontSize: 10 }}>
+                  {isExpanded ? <CaretDownOutlined /> : <CaretRightOutlined />}
+                </span>
+              ) : (
+                <span style={{ marginRight: 10 }} />
+              )}
+              <FolderOutlined style={{ marginRight: 6, flexShrink: 0 }} />
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat.name}</span>
+              <span style={{ marginLeft: 4, fontSize: 11, color: '#64748b', whiteSpace: 'nowrap' }}>({cat.case_count})</span>
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginLeft: 4 }}>
+              {canAddChild && (
+                <Tooltip title="新建子目录">
+                  <Button type="text" size="small"
+                    onClick={(e) => { e.stopPropagation(); openCatCreate(cat.id) }}
+                    style={{ color: '#818cf8', fontSize: 11 }}>＋</Button>
+                </Tooltip>
+              )}
+              <Button type="text" size="small"
+                onClick={(e) => { e.stopPropagation(); openCatEdit(cat) }}
+                style={{ color: '#cbd5e1', fontSize: 11 }}>✎</Button>
+              <Popconfirm
+                title={`删除目录"${cat.name}"？`}
+                description="目录及子目录下所有用例将移入回收站"
+                onConfirm={(e) => { e?.stopPropagation(); handleCatDelete(cat) }}
+                onCancel={(e) => e?.stopPropagation()}
+              >
+                <Button type="text" size="small" danger
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ fontSize: 11 }}>✕</Button>
+              </Popconfirm>
+            </span>
+          </div>
+          {hasChildren && isExpanded && (
+            <div>{renderCategoryTree(cat.children, depth + 1)}</div>
+          )}
+        </div>
+      )
+    })
+  }
+
+  // 列出所有目录（含子目录，用于用例编辑的目录选择器）
+  const allFlatCategories = useMemo(() => {
+    return getFlatCategories(categories.filter(c => !c.is_system))
+  }, [categories])
+
   return (
     <div style={{ display: 'flex', gap: 16, maxWidth: 1300, margin: '0 auto' }}>
       {/* ======= 左侧目录栏 ======= */}
-      <div style={{ width: 220, flexShrink: 0 }}>
+      <div style={{ width: 240, flexShrink: 0 }}>
         <Card
           bodyStyle={{ ...cardBodyStyle, padding: 12 }}
           style={{ background: '#1e293b', border: '1px solid rgba(148,163,184,0.15)', borderRadius: 12 }}
           title={<span style={{ color: '#f1f5f9', fontSize: 14 }}><AppstoreOutlined /> 目录</span>}
           extra={
-            <Tooltip title="新建目录">
-              <Button type="text" size="small" icon={<FolderAddOutlined />} onClick={openCatCreate} style={{ color: '#818cf8' }} />
+            <Tooltip title="新建根目录">
+              <Button type="text" size="small" icon={<FolderAddOutlined />} onClick={() => openCatCreate(undefined)} style={{ color: '#818cf8' }} />
             </Tooltip>
           }
         >
@@ -379,37 +505,7 @@ export default function TestCaseManager() {
           >
             <FolderOutlined style={{ marginRight: 8 }} />全部
           </div>
-          {categories.filter(c => !c.is_system).map((cat) => (
-            <div key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              style={{
-                padding: '8px 12px', borderRadius: 6, cursor: 'pointer', marginBottom: 2,
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                background: activeCategory === cat.id ? 'rgba(129,140,248,0.15)' : 'transparent',
-                color: activeCategory === cat.id ? '#818cf8' : '#e2e8f0',
-              }}
-            >
-              <span style={{ fontWeight: activeCategory === cat.id ? 600 : 400 }}>
-                <FolderOutlined style={{ marginRight: 8 }} />{cat.name}
-                <span style={{ marginLeft: 6, fontSize: 12, color: '#cbd5e1' }}>({cat.case_count})</span>
-              </span>
-              <span>
-                <Button type="text" size="small"
-                  onClick={(e) => { e.stopPropagation(); openCatEdit(cat) }}
-                  style={{ color: '#cbd5e1', fontSize: 12 }}>✎</Button>
-                <Popconfirm
-                  title={`删除目录"${cat.name}"？`}
-                  description="目录及目录下所有用例将移入回收站"
-                  onConfirm={(e) => { e?.stopPropagation(); handleCatDelete(cat) }}
-                  onCancel={(e) => e?.stopPropagation()}
-                >
-                  <Button type="text" size="small" danger
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ fontSize: 12 }}>✕</Button>
-                </Popconfirm>
-              </span>
-            </div>
-          ))}
+          {renderCategoryTree(categories)}
           {/* 回收站入口（固定在底部） */}
           {categories.filter(c => c.is_system).map((cat) => (
             <div key={cat.id}
@@ -510,7 +606,7 @@ export default function TestCaseManager() {
                     </Tooltip>
                     <Popconfirm
                       title={`永久删除目录"${cat.name}"？`}
-                      description="目录及目录下所有用例将被永久删除，不可恢复！"
+                      description="目录及子目录下所有用例将被永久删除，不可恢复！"
                       onConfirm={() => handleCatPermanentDelete(cat)}
                       okText="永久删除" cancelText="取消"
                       okButtonProps={{ danger: true }}
@@ -544,6 +640,11 @@ export default function TestCaseManager() {
         okText="保存" cancelText="取消"
         styles={{ content: { background: '#1e293b' }, header: { background: '#1e293b' } }}
       >
+        {!editingCat && catParentId !== undefined && (
+          <div style={{ marginBottom: 12, color: '#94a3b8', fontSize: 12 }}>
+            父目录：<span style={{ color: '#cbd5e1' }}>{getCategoryPath(catParentId, categories)}</span>
+          </div>
+        )}
         <Text style={{ color: '#e2e8f0', display: 'block', marginBottom: 6 }}>目录名称</Text>
         <Input placeholder="输入目录名称" value={catName} onChange={(e) => setCatName(e.target.value)} />
       </Modal>
@@ -563,7 +664,7 @@ export default function TestCaseManager() {
           placeholder="选择目标目录" style={{ width: '100%' }}
           value={migrateTargetId}
           onChange={(val) => setMigrateTargetId(val)}
-          options={categories.filter(c => !c.is_system).map((c) => ({ value: c.id, label: c.name }))}
+          options={allFlatCategories}
         />
       </Modal>
 
@@ -585,7 +686,7 @@ export default function TestCaseManager() {
             placeholder="选择目录（可选）" allowClear style={{ width: '100%' }}
             value={editCategoryId}
             onChange={(val) => setEditCategoryId(val)}
-            options={categories.filter(c => !c.is_system).map((c) => ({ value: c.id, label: c.name }))}
+            options={allFlatCategories}
           />
         </div>
         <div>
