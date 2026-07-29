@@ -7,7 +7,7 @@ import {
   PlusOutlined, EditOutlined, DeleteOutlined,
   PlayCircleOutlined, SearchOutlined, ThunderboltOutlined,
   FolderAddOutlined, FolderOutlined, AppstoreOutlined,
-  UndoOutlined, DeleteFilled,
+  UndoOutlined, SwapOutlined, DeleteFilled,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import api, { TestCaseData, TestCaseCategoryData, ExecuteResultData } from '../api/client'
@@ -52,6 +52,11 @@ export default function TestCaseManager() {
   const [batchDeleting, setBatchDeleting] = useState(false)
   const [batchRestoring, setBatchRestoring] = useState(false)
   const [batchPermanenting, setBatchPermanenting] = useState(false)
+
+  // 迁移
+  const [migrateModalOpen, setMigrateModalOpen] = useState(false)
+  const [migrateTargetId, setMigrateTargetId] = useState<number | undefined>(undefined)
+  const [migrating, setMigrating] = useState(false)
 
   // 回收站ID
   const recycleBinId = useMemo(() => {
@@ -283,6 +288,21 @@ export default function TestCaseManager() {
     })
   }
 
+  const handleBatchMigrate = async () => {
+    if (selectedIds.length === 0) { message.warning('请至少选择一个测试用例'); return }
+    if (migrateTargetId === undefined) { message.warning('请选择目标目录'); return }
+    setMigrating(true)
+    try {
+      const res = await api.batchMigrateTestCases(selectedIds, migrateTargetId)
+      message.success(res.detail || '迁移成功')
+      setSelectedIds([])
+      setMigrateModalOpen(false)
+      fetchData()
+      loadCategories()
+    } catch (err: any) { message.error(err.response?.data?.detail || '迁移失败') }
+    finally { setMigrating(false) }
+  }
+
   // Monaco 加载前注册 Python 补全提供者
   const handleMonacoBeforeMount = useCallback((monaco: any) => {
     registerPythonCompletions(monaco)
@@ -444,6 +464,10 @@ export default function TestCaseManager() {
                   disabled={selectedIds.length === 0} danger>
                   批量删除 ({selectedIds.length})
                 </Button>
+                <Button icon={<SwapOutlined />} onClick={() => { setMigrateTargetId(undefined); setMigrateModalOpen(true) }}
+                  disabled={selectedIds.length === 0} style={{ color: '#f59e0b', borderColor: '#f59e0b' }}>
+                  迁移 ({selectedIds.length})
+                </Button>
                 <Button icon={<ThunderboltOutlined />} onClick={handleBatchExecute} loading={batchExecuting}
                   disabled={selectedIds.length === 0} className="btn-float-primary">
                   批量执行 ({selectedIds.length})
@@ -522,6 +546,25 @@ export default function TestCaseManager() {
       >
         <Text style={{ color: '#e2e8f0', display: 'block', marginBottom: 6 }}>目录名称</Text>
         <Input placeholder="输入目录名称" value={catName} onChange={(e) => setCatName(e.target.value)} />
+      </Modal>
+
+      {/* 迁移弹窗 */}
+      <Modal
+        title={`迁移 ${selectedIds.length} 个用例`}
+        open={migrateModalOpen}
+        onCancel={() => setMigrateModalOpen(false)}
+        onOk={handleBatchMigrate}
+        confirmLoading={migrating}
+        okText="迁移" cancelText="取消"
+        styles={{ content: { background: '#1e293b' }, header: { background: '#1e293b' } }}
+      >
+        <Text style={{ color: '#e2e8f0', display: 'block', marginBottom: 6 }}>选择目标目录</Text>
+        <Select
+          placeholder="选择目标目录" style={{ width: '100%' }}
+          value={migrateTargetId}
+          onChange={(val) => setMigrateTargetId(val)}
+          options={categories.filter(c => !c.is_system).map((c) => ({ value: c.id, label: c.name }))}
+        />
       </Modal>
 
       {/* 用例新建/编辑弹窗 */}

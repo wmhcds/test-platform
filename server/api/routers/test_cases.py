@@ -78,6 +78,11 @@ class BatchIdsRequest(BaseModel):
     ids: list[int]
 
 
+class BatchMigrateRequest(BaseModel):
+    ids: list[int]
+    target_category_id: int
+
+
 class BatchExecuteRequest(BaseModel):
     case_ids: list[int]
     batch_name: str = ""
@@ -534,6 +539,26 @@ def batch_permanent_delete(body: BatchIdsRequest):
             db.delete(tc)
         db.commit()
         return {"ok": True, "detail": f"{len(tcs)} 个用例已永久删除"}
+
+
+@router.post("/batch-migrate")
+def batch_migrate(body: BatchMigrateRequest):
+    """批量迁移用例到指定目录。"""
+    if not body.ids:
+        raise HTTPException(status_code=400, detail="请选择至少一个用例")
+    with db_session() as db:
+        target = db.query(TestCaseCategory).filter(
+            TestCaseCategory.id == body.target_category_id,
+            TestCaseCategory.is_system == False,
+            TestCaseCategory.is_deleted == False,
+        ).first()
+        if not target:
+            raise HTTPException(status_code=404, detail="目标目录不存在")
+        tcs = db.query(TestCase).filter(TestCase.id.in_(body.ids)).all()
+        for tc in tcs:
+            tc.category_id = body.target_category_id
+        db.commit()
+        return {"ok": True, "detail": f"{len(tcs)} 个用例已迁移到目录 '{target.name}'"}
 
 
 # ---- 单条执行 ----
