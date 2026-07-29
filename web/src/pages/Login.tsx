@@ -133,66 +133,27 @@ export default function Login({ onLoginSuccess }: Props) {
 
   return (
     <div className="login-page">
-      {/* ===== 凡人修仙传动画背景 ===== */}
-      <div className="xianxia-bg">
-        {/* 星辰粒子 */}
-        <div className="stars">
-          {Array.from({ length: 60 }).map((_, i) => (
+      {/* 文案层：动画仅在文案背后展示 */}
+      <div className="login-quote-wrapper">
+        <div className="quote-aurora" />
+        <div className="quote-particles">
+          {Array.from({ length: 18 }).map((_, i) => (
             <span
-              key={`star-${i}`}
-              className="star"
+              key={`qp-${i}`}
+              className="quote-particle"
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${3 + Math.random() * 4}s`,
-                width: `${1 + Math.random() * 2}px`,
-                height: `${1 + Math.random() * 2}px`,
+                animationDelay: `${Math.random() * 6}s`,
+                animationDuration: `${4 + Math.random() * 5}s`,
+                width: `${2 + Math.random() * 3}px`,
+                height: `${2 + Math.random() * 3}px`,
               }}
             />
           ))}
         </div>
 
-        {/* 灵气光晕 */}
-        <div className="aura aura-1" />
-        <div className="aura aura-2" />
-        <div className="aura aura-3" />
-
-        {/* 修仙符文阵法（八卦样式） */}
-        <div className="rune-circle rune-1">
-          <div className="rune-inner" />
-          <div className="rune-yin-yang" />
-          <div className="rune-symbols">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <span
-                key={i}
-                className="rune-symbol"
-                style={{ transform: `rotate(${i * 45}deg) translateY(-90px)` }}
-              >
-                {['☰', '☱', '☲', '☳', '☴', '☵', '☶', '☷'][i]}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="rune-circle rune-2">
-          <div className="rune-inner" />
-          <div className="rune-ring" />
-        </div>
-
-        {/* 流星 */}
-        <div className="meteor meteor-1" />
-        <div className="meteor meteor-2" />
-        <div className="meteor meteor-3" />
-
-        {/* 底部云雾 */}
-        <div className="mist mist-1" />
-        <div className="mist mist-2" />
-      </div>
-
-      {/* 文案层 */}
-      <div className="login-quote-wrapper">
-        <div className="login-quote-text xianxia-quote">
+        <div className="login-quote-text modern-quote">
           {displayText.split('').map((char, i) => (
             <span
               key={i}

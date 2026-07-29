@@ -800,23 +800,31 @@ body {
 /* ==================== 登录页打字机动画文案 ==================== */
 .login-quote-wrapper {
   position: absolute;
-  top: 10%;
+  top: 9%;
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  max-width: 800px;
+  max-width: 760px;
   text-align: center;
-  padding: 0 24px;
+  padding: 28px 32px;
   z-index: 1;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(10, 16, 28, 0.35);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .login-quote-text {
+  position: relative;
+  z-index: 1;
   font-size: 15px;
   line-height: 2.2;
-  color: rgba(148, 163, 184, 0.85);
+  color: rgba(148, 163, 184, 0.9);
   letter-spacing: 1.5px;
   font-weight: 300;
-  text-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
   user-select: none;
 }
 
@@ -826,19 +834,19 @@ body {
 }
 
 .quote-char.just-typed {
-  color: #818cf8;
-  text-shadow: 0 0 12px rgba(129, 140, 248, 0.7), 0 0 24px rgba(99, 102, 241, 0.4);
+  color: #a5b4fc;
+  text-shadow: 0 0 14px rgba(165, 180, 252, 0.7), 0 0 28px rgba(99, 102, 241, 0.35);
   animation: charGlow 0.6s ease-out forwards;
 }
 
 @keyframes charGlow {
   0% {
-    color: #c4b5fd;
-    text-shadow: 0 0 16px rgba(196, 181, 253, 0.8), 0 0 32px rgba(99, 102, 241, 0.5);
+    color: #e0e7ff;
+    text-shadow: 0 0 18px rgba(224, 231, 255, 0.9), 0 0 36px rgba(99, 102, 241, 0.55);
   }
   100% {
-    color: #818cf8;
-    text-shadow: 0 0 8px rgba(129, 140, 248, 0.4), 0 0 16px rgba(99, 102, 241, 0.2);
+    color: #a5b4fc;
+    text-shadow: 0 0 10px rgba(165, 180, 252, 0.4), 0 0 20px rgba(99, 102, 241, 0.2);
   }
 }
 
@@ -854,7 +862,88 @@ body {
   50% { opacity: 0; }
 }
 
-/* 登录页面：凡人修仙传暗黑仙侠风 */
+/* 文案后方时尚动画：极光流动 + 漂浮光点 */
+.quote-aurora {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 20% 40%, rgba(99, 102, 241, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 60%, rgba(16, 185, 129, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 60%);
+  filter: blur(30px);
+  animation: auroraShift 10s ease-in-out infinite alternate;
+}
+
+.quote-aurora::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(99, 102, 241, 0.12) 25%,
+    rgba(16, 185, 129, 0.1) 50%,
+    rgba(139, 92, 246, 0.12) 75%,
+    transparent 100%
+  );
+  background-size: 200% 200%;
+  animation: auroraFlow 8s linear infinite;
+}
+
+@keyframes auroraShift {
+  0% { transform: scale(1) rotate(0deg); opacity: 0.7; }
+  50% { transform: scale(1.08) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-1deg); opacity: 0.75; }
+}
+
+@keyframes auroraFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.quote-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.quote-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 0 8px rgba(165, 180, 252, 0.7),
+    0 0 16px rgba(99, 102, 241, 0.35);
+  opacity: 0;
+  animation: particleFloat ease-in-out infinite;
+}
+
+@keyframes particleFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.6);
+  }
+  20% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(-18px) scale(1);
+  }
+  80% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-36px) scale(0.7);
+  }
+}
+
+/* 登录页面：暗色科技风 */
 .login-page {
   display: flex;
   align-items: center;
@@ -991,307 +1080,4 @@ body {
   background: rgba(99, 102, 241, 0.15) !important;
 }
 
-/* ==================== 凡人修仙传动画背景 ==================== */
-.xianxia-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
 
-/* 星辰粒子 */
-.stars {
-  position: absolute;
-  inset: 0;
-}
-
-.star {
-  position: absolute;
-  background: #fff;
-  border-radius: 50%;
-  box-shadow: 0 0 6px rgba(165, 243, 252, 0.8), 0 0 12px rgba(129, 140, 248, 0.5);
-  animation: twinkle ease-in-out infinite;
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.2; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.3); }
-}
-
-/* 灵气光晕 */
-.aura {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.18;
-  animation: auraPulse 8s ease-in-out infinite;
-}
-
-.aura-1 {
-  width: 600px;
-  height: 600px;
-  top: -200px;
-  right: -150px;
-  background: radial-gradient(circle, #6366f1 0%, transparent 70%);
-  animation-delay: 0s;
-}
-
-.aura-2 {
-  width: 500px;
-  height: 500px;
-  bottom: -180px;
-  left: -120px;
-  background: radial-gradient(circle, #10b981 0%, transparent 70%);
-  animation-delay: -3s;
-}
-
-.aura-3 {
-  width: 400px;
-  height: 400px;
-  top: 40%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(circle, #818cf8 0%, transparent 70%);
-  animation-delay: -5s;
-  opacity: 0.1;
-}
-
-@keyframes auraPulse {
-  0%, 100% { transform: scale(1); opacity: 0.15; }
-  50% { transform: scale(1.15); opacity: 0.28; }
-}
-
-/* 符文阵法 */
-.rune-circle {
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid rgba(129, 140, 248, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.rune-1 {
-  width: 320px;
-  height: 320px;
-  top: 8%;
-  left: 6%;
-  animation: runeRotate 40s linear infinite;
-}
-
-.rune-2 {
-  width: 260px;
-  height: 260px;
-  bottom: 10%;
-  right: 5%;
-  animation: runeRotate 50s linear infinite reverse;
-}
-
-.rune-inner {
-  position: absolute;
-  width: 70%;
-  height: 70%;
-  border-radius: 50%;
-  border: 1px dashed rgba(129, 140, 248, 0.2);
-}
-
-.rune-ring {
-  position: absolute;
-  width: 85%;
-  height: 85%;
-  border-radius: 50%;
-  border: 1px solid rgba(16, 185, 129, 0.15);
-}
-
-.rune-yin-yang {
-  position: absolute;
-  width: 40%;
-  height: 40%;
-  border-radius: 50%;
-  background: linear-gradient(90deg, rgba(99, 102, 241, 0.25) 50%, rgba(16, 185, 129, 0.25) 50%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.rune-yin-yang::before,
-.rune-yin-yang::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-}
-
-.rune-yin-yang::before {
-  width: 50%;
-  height: 50%;
-  top: 0;
-  left: 25%;
-  background: radial-gradient(circle at 50% 35%, rgba(16, 185, 129, 0.6) 20%, transparent 22%);
-}
-
-.rune-yin-yang::after {
-  width: 50%;
-  height: 50%;
-  bottom: 0;
-  left: 25%;
-  background: radial-gradient(circle at 50% 65%, rgba(99, 102, 241, 0.6) 20%, transparent 22%);
-}
-
-.rune-symbols {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.rune-symbol {
-  position: absolute;
-  color: rgba(165, 243, 252, 0.35);
-  font-size: 18px;
-  text-shadow: 0 0 8px rgba(165, 243, 252, 0.3);
-}
-
-@keyframes runeRotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* 流星 */
-.meteor {
-  position: absolute;
-  width: 120px;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(165, 243, 252, 0.8), transparent);
-  transform: rotate(-45deg);
-  opacity: 0;
-  filter: drop-shadow(0 0 6px rgba(165, 243, 252, 0.8));
-  animation: meteorFly linear infinite;
-}
-
-.meteor-1 {
-  top: 20%;
-  left: -10%;
-  animation-duration: 6s;
-  animation-delay: 1s;
-}
-
-.meteor-2 {
-  top: 50%;
-  left: -10%;
-  animation-duration: 8s;
-  animation-delay: 4s;
-}
-
-.meteor-3 {
-  top: 35%;
-  left: -10%;
-  animation-duration: 7s;
-  animation-delay: 7s;
-}
-
-@keyframes meteorFly {
-  0% { transform: translateX(0) translateY(0) rotate(-45deg); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateX(120vw) translateY(120vh) rotate(-45deg); opacity: 0; }
-}
-
-/* 底部云雾 */
-.mist {
-  position: absolute;
-  bottom: 0;
-  left: -50%;
-  width: 200%;
-  height: 220px;
-  background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
-  filter: blur(40px);
-  animation: mistFlow 20s linear infinite;
-}
-
-.mist-2 {
-  animation-delay: -10s;
-  opacity: 0.6;
-  background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
-}
-
-@keyframes mistFlow {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(25%); }
-}
-
-/* 修仙风格文案 */
-.xianxia-quote {
-  font-family: 'STKaiti', 'KaiTi', 'SimKaiti', 'Microsoft YaHei', serif !important;
-  font-size: 17px !important;
-  line-height: 2.4 !important;
-  color: rgba(226, 232, 240, 0.9) !important;
-  letter-spacing: 2px !important;
-  text-shadow:
-    0 0 20px rgba(99, 102, 241, 0.25),
-    0 0 40px rgba(16, 185, 129, 0.15),
-    0 0 60px rgba(99, 102, 241, 0.1) !important;
-}
-
-.quote-char.just-typed {
-  color: #a5f3fc !important;
-  text-shadow:
-    0 0 12px rgba(165, 243, 252, 0.9),
-    0 0 24px rgba(99, 102, 241, 0.6),
-    0 0 36px rgba(16, 185, 129, 0.3) !important;
-  animation: xianxiaCharGlow 0.9s ease-out forwards;
-}
-
-@keyframes xianxiaCharGlow {
-  0% {
-    color: #ffffff;
-    text-shadow:
-      0 0 20px rgba(255, 255, 255, 0.9),
-      0 0 40px rgba(165, 243, 252, 0.7),
-      0 0 60px rgba(99, 102, 241, 0.5);
-  }
-  100% {
-    color: #a5f3fc;
-    text-shadow:
-      0 0 10px rgba(165, 243, 252, 0.5),
-      0 0 20px rgba(99, 102, 241, 0.3),
-      0 0 30px rgba(16, 185, 129, 0.15);
-  }
-}
-
-/* 登录卡片增加仙侠光效 */
-.login-card {
-  position: relative;
-  z-index: 1;
-  width: 400px;
-  max-width: 100%;
-  background: rgba(10, 16, 28, 0.82) !important;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(148, 163, 184, 0.12) !important;
-  border-radius: 16px !important;
-  box-shadow:
-    0 0 0 1px rgba(99, 102, 241, 0.08),
-    0 20px 60px rgba(0, 0, 0, 0.5),
-    0 0 80px rgba(99, 102, 241, 0.1) !important;
-}
-
-.login-card::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 17px;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(16, 185, 129, 0.2), rgba(99, 102, 241, 0.35));
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  opacity: 0.6;
-}
-
-.login-quote-wrapper {
-  top: 8%;
-  z-index: 1;
-}
