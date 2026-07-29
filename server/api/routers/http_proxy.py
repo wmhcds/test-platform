@@ -63,8 +63,8 @@ async def send_request(
     else:
         full_url = f"http://{url}"
 
-    # 登录态请求时，内网业务接口 cookie 通常带 Secure 标记，必须走 https
-    if not is_anonymous and full_url.startswith("http://"):
+    # 内网业务接口要求 https，统一升级
+    if full_url.startswith("http://"):
         full_url = full_url.replace("http://", "https://", 1)
 
     print(f"[http_proxy] [{login_type or 'anonymous'}] {method} {full_url}")
