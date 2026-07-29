@@ -2,8 +2,6 @@
 import hashlib
 import secrets
 import time
-import sys
-from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Header
@@ -25,31 +23,6 @@ TOKEN_TTL_HOURS = 24
 def hash_password(password: str) -> str:
     """对密码进行加盐 SHA256 哈希。"""
     return hashlib.sha256(f"{password}{PASSWORD_SALT}".encode()).hexdigest()
-
-
-def _load_config() -> tuple[str, str]:
-    """加载 config.toml 中的初始账号密码（向后兼容）。"""
-    config_path = Path(__file__).resolve().parent.parent.parent / "config.toml"
-    username = ""
-    password = ""
-    if config_path.exists():
-        try:
-            if sys.version_info >= (3, 11):
-                import tomllib
-            else:
-                import tomli as tomllib
-            with open(config_path, "rb") as f:
-                data = tomllib.load(f)
-            username = data.get("auth", {}).get("username", "")
-            password = data.get("auth", {}).get("password", "")
-        except Exception:
-            pass
-    import os
-    if not username:
-        username = os.getenv("LOGIN_USERNAME", "admin")
-    if not password:
-        password = os.getenv("LOGIN_PASSWORD", "admin123")
-    return username, password
 
 
 def _clean_expired():
@@ -108,27 +81,6 @@ def login(body: LoginRequest):
                 "role": user.role,
             }
             return LoginResponse(ok=True, token=token, username=user.username, role=user.role)
-
-        # 回退到 config.toml 的初始账号（仅当数据库无该用户时）
-        cfg_user, cfg_pass = _load_config()
-        if body.username == cfg_user and body.password == cfg_pass:
-            # 自动将 config 用户同步到数据库
-            new_user = User(
-                username=cfg_user,
-                password_hash=hash_password(cfg_pass),
-                role="admin",
-            )
-            db.add(new_user)
-            db.commit()
-            db.refresh(new_user)
-            token = secrets.token_urlsafe(32)
-            _tokens[token] = {
-                "created_at": time.time(),
-                "user_id": new_user.id,
-                "username": new_user.username,
-                "role": new_user.role,
-            }
-            return LoginResponse(ok=True, token=token, username=new_user.username, role=new_user.role)
 
         raise HTTPException(status_code=401, detail="账号或密码错误")
     finally:
