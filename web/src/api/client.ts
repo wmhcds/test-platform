@@ -116,6 +116,7 @@ export interface UserData {
   id: number
   username: string
   role: string
+  disabled: boolean
   created_at: string
 }
 
@@ -222,6 +223,8 @@ export const api = {
     http.put<UserData>(`/users/${id}/role`, { role }).then((r) => r.data),
   updateUserPassword: (id: number, password: string) =>
     http.put<UserData>(`/users/${id}/password`, { password }).then((r) => r.data),
+  toggleUserDisabled: (id: number, disabled: boolean) =>
+    http.put<UserData>(`/users/${id}/disabled`, { disabled }).then((r) => r.data),
 
   // 邀请码管理（仅管理员）
   listInviteCodes: () =>

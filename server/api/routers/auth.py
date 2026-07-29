@@ -71,6 +71,8 @@ def login(body: LoginRequest):
         # 优先查询数据库中的用户
         user = db.query(User).filter(User.username == body.username).first()
         if user:
+            if user.disabled:
+                raise HTTPException(status_code=403, detail="该账号已被禁用，请联系管理员")
             if user.password_hash != hash_password(body.password):
                 raise HTTPException(status_code=401, detail="账号或密码错误")
             token = secrets.token_urlsafe(32)

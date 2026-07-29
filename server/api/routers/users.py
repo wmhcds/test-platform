@@ -32,6 +32,7 @@ class UserOut(BaseModel):
     id: int
     username: str
     role: str
+    disabled: bool
     created_at: datetime
 
     class Config:
@@ -155,6 +156,30 @@ def update_password(user_id: int, body: UpdatePasswordRequest, authorization: Op
         if not user:
             raise HTTPException(status_code=404, detail="用户不存在")
         user.password_hash = hash_password(password)
+        db.commit()
+        db.refresh(user)
+        return user
+    finally:
+        db.close()
+
+
+class ToggleDisabledRequest(BaseModel):
+    disabled: bool
+
+
+@router.put("/{user_id}/disabled", response_model=UserOut)
+def toggle_disabled(user_id: int, body: ToggleDisabledRequest, authorization: Optional[str] = Header(None)):
+    """管理员禁用/启用用户（不能禁用自己）。"""
+    current = _require_admin(authorization)
+    if user_id == current.get("user_id"):
+        raise HTTPException(status_code=400, detail="不能禁用自己")
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        user.disabled = body.disabled
         db.commit()
         db.refresh(user)
         return user

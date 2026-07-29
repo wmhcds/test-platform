@@ -13,6 +13,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), default="user")  # admin | user
+    disabled = Column(Boolean, default=False)   # 是否禁用
     created_at = Column(DateTime, default=func.now())
 
 

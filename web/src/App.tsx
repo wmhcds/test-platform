@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import AppLayout from './components/AppLayout'
+import Dashboard from './pages/Dashboard'
 import BatchList from './pages/BatchList'
 import BatchDetail from './pages/BatchDetail'
 import Report from './pages/Report'
@@ -8,6 +9,8 @@ import HttpClient from './pages/HttpClient'
 import TestCaseManager from './pages/TestCaseManager'
 import InviteCodes from './pages/InviteCodes'
 import UserManagement from './pages/UserManagement'
+import SchedulerConfig from './pages/SchedulerConfig'
+import DatabaseConfig from './pages/DatabaseConfig'
 import Login from './pages/Login'
 
 function getToken(): string | null {
@@ -20,6 +23,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_role')
+    localStorage.removeItem('auth_username')
     setToken(null)
   }
 
@@ -30,6 +34,7 @@ export default function App() {
   return (
     <AppLayout onLogout={handleLogout}>
       <Routes>
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/" element={<BatchList />} />
         <Route path="/batch/:id" element={<BatchDetail />} />
         <Route path="/report/:id" element={<Report />} />
@@ -37,7 +42,9 @@ export default function App() {
         <Route path="/test-cases" element={<TestCaseManager />} />
         <Route path="/invite-codes" element={<InviteCodes />} />
         <Route path="/users" element={<UserManagement />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/config/scheduler" element={<SchedulerConfig />} />
+        <Route path="/config/database" element={<DatabaseConfig />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AppLayout>
   )

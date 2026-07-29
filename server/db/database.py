@@ -135,6 +135,13 @@ def _migrate_sqlite_columns():
         cursor.execute("ALTER TABLE test_case_categories ADD COLUMN level INTEGER DEFAULT 1")
         print("  [OK] auto-add column: test_case_categories.level")
 
+    # users 补充列
+    cursor.execute("PRAGMA table_info(users)")
+    user_columns = {row[1] for row in cursor.fetchall()}
+    if "disabled" not in user_columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN disabled BOOLEAN DEFAULT 0")
+        print("  [OK] auto-add column: users.disabled")
+
     conn.commit()
     conn.close()
 

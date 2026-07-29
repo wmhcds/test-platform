@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, Button, message, Table, Popconfirm, Space, Typography, Tag, Modal, Input, Select } from 'antd'
-import { PlusOutlined, DeleteOutlined, EditOutlined, LockOutlined } from '@ant-design/icons'
+import { PlusOutlined, DeleteOutlined, EditOutlined, LockOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import api, { UserData } from '../api/client'
 
@@ -79,6 +79,16 @@ export default function UserManagement() {
     }
   }
 
+  const handleDisable = async (id: number, disabled: boolean) => {
+    try {
+      await api.toggleUserDisabled(id, disabled)
+      message.success(disabled ? '已禁用' : '已启用')
+      fetchUsers()
+    } catch (err: any) {
+      message.error(err.response?.data?.detail || '操作失败')
+    }
+  }
+
   const handleRoleSave = async () => {
     if (!editUser) return
     try {
@@ -120,6 +130,12 @@ export default function UserManagement() {
         : <Tag color="blue">普通用户</Tag>,
     },
     {
+      title: '状态', dataIndex: 'disabled', key: 'disabled',
+      render: (disabled: boolean) => disabled
+        ? <Tag color="error">已禁用</Tag>
+        : <Tag color="success">正常</Tag>,
+    },
+    {
       title: '注册时间', dataIndex: 'created_at', key: 'created_at',
       render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm:ss'),
     },
@@ -141,6 +157,15 @@ export default function UserManagement() {
           }}>
             密码
           </Button>
+          {record.disabled ? (
+            <Popconfirm title="确认启用该用户？" onConfirm={() => handleDisable(record.id, false)} okText="启用" cancelText="取消">
+              <Button type="text" icon={<CheckCircleOutlined />} size="small" style={{ color: '#10b981' }} />
+            </Popconfirm>
+          ) : (
+            <Popconfirm title="确认禁用该用户？" onConfirm={() => handleDisable(record.id, true)} okText="禁用" cancelText="取消">
+              <Button type="text" icon={<StopOutlined />} size="small" style={{ color: '#f59e0b' }} />
+            </Popconfirm>
+          )}
           <Popconfirm title="确认删除该用户？" onConfirm={() => handleDelete(record.id)} okText="删除" cancelText="取消">
             <Button type="text" danger icon={<DeleteOutlined />} size="small" />
           </Popconfirm>

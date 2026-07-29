@@ -620,14 +620,6 @@ body {
 }
 
 /* ==================== 登录页样式 ==================== */
-.login-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0b1120 0%, #0f172a 50%, #0c1929 100%);
-  padding: 24px;
-}
 
 .login-card {
   width: 400px;
@@ -803,4 +795,197 @@ body {
 
 .case-select-tree .ant-tree-list-holder-inner {
   background: transparent !important;
+}
+
+/* ==================== 登录页打字机动画文案 ==================== */
+.login-quote-wrapper {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 800px;
+  text-align: center;
+  padding: 0 24px;
+  z-index: 1;
+}
+
+.login-quote-text {
+  font-size: 15px;
+  line-height: 2.2;
+  color: rgba(148, 163, 184, 0.85);
+  letter-spacing: 1.5px;
+  font-weight: 300;
+  text-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+  user-select: none;
+}
+
+.quote-char {
+  display: inline;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.quote-char.just-typed {
+  color: #818cf8;
+  text-shadow: 0 0 12px rgba(129, 140, 248, 0.7), 0 0 24px rgba(99, 102, 241, 0.4);
+  animation: charGlow 0.6s ease-out forwards;
+}
+
+@keyframes charGlow {
+  0% {
+    color: #c4b5fd;
+    text-shadow: 0 0 16px rgba(196, 181, 253, 0.8), 0 0 32px rgba(99, 102, 241, 0.5);
+  }
+  100% {
+    color: #818cf8;
+    text-shadow: 0 0 8px rgba(129, 140, 248, 0.4), 0 0 16px rgba(99, 102, 241, 0.2);
+  }
+}
+
+.quote-cursor {
+  display: inline-block;
+  color: #818cf8;
+  font-weight: 300;
+  animation: cursorBlink 1s step-end infinite;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* 登录页面调整容器为 relative */
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0b1120 0%, #0f172a 50%, #0c1929 100%);
+  padding: 24px;
+  position: relative;
+}
+
+/* ==================== 仪表盘控制台 ==================== */
+.dashboard-page {
+  padding: 8px 0;
+}
+
+.dashboard-hero {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.dashboard-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #f1f5f9;
+  margin: 0 0 8px 0;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #818cf8, #c4b5fd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dashboard-subtitle {
+  font-size: 15px;
+  color: #94a3b8;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-card {
+  position: relative;
+  background: rgba(17, 25, 40, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 16px;
+  padding: 40px 32px;
+  text-align: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.35s ease;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--card-color);
+  box-shadow: 0 12px 40px var(--card-glow);
+}
+
+.dashboard-card-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, var(--card-color), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.dashboard-card:hover .dashboard-card-bg {
+  opacity: 0.08;
+}
+
+.dashboard-card-icon {
+  margin-bottom: 20px;
+  transition: transform 0.35s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-card:hover .dashboard-card-icon {
+  transform: scale(1.1);
+}
+
+.dashboard-card-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 8px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-card-desc {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+  line-height: 1.6;
+}
+
+.dashboard-card-border {
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  width: 60%;
+  height: 2px;
+  background: var(--card-color);
+  border-radius: 1px;
+  opacity: 0;
+  transition: opacity 0.35s ease, left 0.35s ease, width 0.35s ease;
+}
+
+.dashboard-card:hover .dashboard-card-border {
+  opacity: 1;
+  left: 10%;
+  width: 80%;
+}
+
+/* ==================== 顶部栏用户按钮 ==================== */
+.header-user-btn:hover {
+  background: rgba(99, 102, 241, 0.15) !important;
 }

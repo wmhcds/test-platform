@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Input, Button, Card, message, Typography, Tabs } from 'antd'
 import { UserOutlined, LockOutlined, RocketOutlined, KeyOutlined } from '@ant-design/icons'
 
 const { Title, Text } = Typography
+
+const QUOTE_TEXT = '近来常思，人生百年，蜉蝣一日，长生于我何有哉？不过又入樊笼尔。不若二三好友，弈棋饮酒，良缘佳侣，人间携手，风光百年，同归尘土。但，问道之心，终归难改，纵使蹉跎一生，也要争那一线天机。只因幼时便知，人生如棋，落子无悔。'
 
 interface Props {
   onLoginSuccess: (token: string) => void
@@ -10,6 +12,31 @@ interface Props {
 
 export default function Login({ onLoginSuccess }: Props) {
   const [activeTab, setActiveTab] = useState('login')
+  const [displayText, setDisplayText] = useState('')
+  const [glowIndex, setGlowIndex] = useState(-1)
+  const quoteRef = useRef(0)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // 打字机效果：逐字显示
+  useEffect(() => {
+    quoteRef.current = 0
+    setDisplayText('')
+
+    timerRef.current = setInterval(() => {
+      quoteRef.current++
+      if (quoteRef.current <= QUOTE_TEXT.length) {
+        setDisplayText(QUOTE_TEXT.slice(0, quoteRef.current))
+        setGlowIndex(quoteRef.current - 1)
+      } else {
+        if (timerRef.current) clearInterval(timerRef.current)
+        // 所有字显示完毕后，末尾光标闪烁
+      }
+    }, 80)
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [])
 
   // 登录表单
   const [loginUser, setLoginUser] = useState('')
@@ -39,6 +66,7 @@ export default function Login({ onLoginSuccess }: Props) {
       if (resp.ok && data.ok) {
         localStorage.setItem('auth_token', data.token)
         localStorage.setItem('auth_role', data.role || 'user')
+        localStorage.setItem('auth_username', data.username || loginUser.trim())
         onLoginSuccess(data.token)
         message.success('登录成功')
       } else {
@@ -91,6 +119,7 @@ export default function Login({ onLoginSuccess }: Props) {
       if (resp.ok && data.ok) {
         localStorage.setItem('auth_token', data.token)
         localStorage.setItem('auth_role', data.role || 'user')
+        localStorage.setItem('auth_username', data.username || regUser.trim())
         onLoginSuccess(data.token)
         message.success('注册成功，已自动登录')
       } else {
@@ -105,6 +134,24 @@ export default function Login({ onLoginSuccess }: Props) {
 
   return (
     <div className="login-page">
+      {/* 科技感动画文案 */}
+      <div className="login-quote-wrapper">
+        <div className="login-quote-text">
+          {displayText.split('').map((char, i) => (
+            <span
+              key={i}
+              className={`quote-char ${i === glowIndex ? 'just-typed' : ''}`}
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              {char}
+            </span>
+          ))}
+          {displayText.length >= QUOTE_TEXT.length && (
+            <span className="quote-cursor">|</span>
+          )}
+        </div>
+      </div>
+
       <Card className="login-card" bordered={false}>
         <div className="login-header">
           <RocketOutlined className="login-logo" />
