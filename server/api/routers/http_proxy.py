@@ -52,15 +52,22 @@ async def send_request(
     files: List[UploadFile] = File(default=[]),
 ):
     """代理发起 HTTP 请求，返回状态码、耗时与格式化响应体。"""
-    # 统一 URL：用户可能输入 http://，但内网业务接口要求 https（cookie Secure 标记）
-    if url.startswith("http://"):
-        full_url = url.replace("http://", "https://", 1)
-    elif url.startswith("https://"):
-        full_url = url
-    else:
-        full_url = f"{API_HOST}{url}"
+    # 是否匿名请求：login_type 为空时不使用登录态 session
+    is_anonymous = not login_type or not login_type.strip()
 
-    print(f"[http_proxy] [{login_type}] {method} {full_url}")
+    # 组装完整 URL
+    if url.startswith("http://") or url.startswith("https://"):
+        full_url = url
+    elif url.startswith("/"):
+        full_url = f"{API_HOST}{url}"
+    else:
+        full_url = f"http://{url}"
+
+    # 登录态请求时，内网业务接口 cookie 通常带 Secure 标记，必须走 https
+    if not is_anonymous and full_url.startswith("http://"):
+        full_url = full_url.replace("http://", "https://", 1)
+
+    print(f"[http_proxy] [{login_type or 'anonymous'}] {method} {full_url}")
 
     req_headers = {"User-Agent": UA}
     if headers and headers.strip():
@@ -89,9 +96,6 @@ async def send_request(
                 data_dict = parsed_body
             else:
                 json_data = parsed_body
-
-        # 是否匿名请求：login_type 为空时不使用登录态 session，直接访问目标地址
-        is_anonymous = not login_type or not login_type.strip()
 
         if is_anonymous:
             if method == "GET":
