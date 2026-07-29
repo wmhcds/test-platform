@@ -95,7 +95,7 @@ def create_user(body: CreateUserRequest, authorization: Optional[str] = Header(N
 
 @router.delete("/{user_id}")
 def delete_user(user_id: int, authorization: Optional[str] = Header(None)):
-    """管理员删除用户（不能删除自己）。"""
+    """管理员删除用户（不能删除自己，至少保留一个管理员）。"""
     current = _require_admin(authorization)
     if user_id == current.get("user_id"):
         raise HTTPException(status_code=400, detail="不能删除自己")
@@ -105,6 +105,13 @@ def delete_user(user_id: int, authorization: Optional[str] = Header(None)):
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="用户不存在")
+
+        # 如果要删除的是管理员，检查至少保留一个管理员
+        if user.role == "admin":
+            admin_count = db.query(User).filter(User.role == "admin").count()
+            if admin_count <= 1:
+                raise HTTPException(status_code=400, detail="管理员用户至少存在一个")
+
         db.delete(user)
         db.commit()
         return {"ok": True}
