@@ -44,7 +44,7 @@ const EMPTY_FORM: Omit<HttpRequestConfigData, 'id' | 'created_at' | 'updated_at'
   url: '',
   headers: [],
   body: '',
-  body_type: 'none',
+  body_type: 'json',
   description: '',
 }
 
@@ -486,20 +486,22 @@ export default function HttpRequestConfigPage() {
 
             <Card
               size="small"
-              title="响应结果"
-              style={{ background: 'rgba(10, 16, 28, 0.6)', border: '1px solid rgba(148,163,184,0.08)' }}
+              title={<span style={{ color: '#f1f5f9' }}>响应结果</span>}
+              style={{ background: 'rgba(10, 16, 28, 0.85)', border: '1px solid rgba(148,163,184,0.12)' }}
+              headStyle={{ borderBottom: '1px solid rgba(148,163,184,0.12)' }}
             >
               <Text style={{ color: '#a5b4fc' }}>{status}</Text>
               <pre
                 style={{
-                  background: '#1e1e1e',
-                  color: '#d4d4d4',
+                  background: '#0b1120',
+                  color: '#f1f5f9',
                   padding: 16,
                   borderRadius: 6,
                   overflowX: 'auto',
                   maxHeight: 360,
                   fontSize: 13,
                   marginTop: 12,
+                  border: '1px solid rgba(148,163,184,0.1)',
                 }}
               >
                 {respBody}
