@@ -153,7 +153,7 @@ export default function AppLayout({ children, onLogout }: Props) {
     : dashboardMenuItems
 
   const menuItems = activeModule ? moduleMenuItems : dashboardMenuItems
-  const isDashboard = location.pathname === '/dashboard'
+  const isDashboard = location.pathname === '/dashboard' || location.pathname === '/'
 
   return (
     <Layout style={{ minHeight: '100vh', background: 'transparent' }}>
