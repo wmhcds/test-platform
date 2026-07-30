@@ -131,6 +131,30 @@ export interface HttpRequestConfigData {
   created_by: string | null
 }
 
+export interface DatabaseConfigData {
+  id: number
+  name: string
+  db_type: string
+  host: string
+  port: number
+  username: string
+  password: string
+  database_name: string
+  notes: string
+  created_at: string
+  updated_at: string
+  created_by: string | null
+}
+
+export interface DbQueryResult {
+  columns: string[]
+  rows: (string | number | null)[][]
+  row_count: number
+  affected_rows: number | null
+  message: string
+  elapsed_ms: number
+}
+
 export interface UserData {
   id: number
   username: string
@@ -242,6 +266,22 @@ export const api = {
     http.put<HttpRequestConfigData>(`/http-request-configs/${id}`, data).then((r) => r.data),
   deleteHttpRequestConfig: (id: number) =>
     http.delete(`/http-request-configs/${id}`).then((r) => r.data),
+
+  // 数据库配置
+  listDatabaseConfigs: () =>
+    http.get<DatabaseConfigData[]>('/database-configs').then((r) => r.data),
+  getDatabaseConfig: (id: number) =>
+    http.get<DatabaseConfigData>(`/database-configs/${id}`).then((r) => r.data),
+  createDatabaseConfig: (data: Omit<DatabaseConfigData, 'id' | 'created_at' | 'updated_at' | 'created_by'>) =>
+    http.post<DatabaseConfigData>('/database-configs', data).then((r) => r.data),
+  updateDatabaseConfig: (id: number, data: Partial<Omit<DatabaseConfigData, 'id' | 'created_at' | 'updated_at' | 'created_by'>>) =>
+    http.put<DatabaseConfigData>(`/database-configs/${id}`, data).then((r) => r.data),
+  deleteDatabaseConfig: (id: number) =>
+    http.delete(`/database-configs/${id}`).then((r) => r.data),
+
+  // 数据库查询
+  executeDbQuery: (dbConfigId: number, sql: string) =>
+    http.post<DbQueryResult>('/db-query/execute', { db_config_id: dbConfigId, sql }).then((r) => r.data),
 
   // 用户管理
   listUsers: () =>

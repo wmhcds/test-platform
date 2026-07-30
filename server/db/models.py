@@ -116,3 +116,21 @@ class HttpRequestConfig(Base):
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     created_by = Column(String(100), nullable=True)
+
+
+# ---------- 数据库连接配置表 ----------
+class DatabaseConfig(Base):
+    __tablename__ = "database_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)          # 配置名称
+    db_type = Column(String(30), nullable=False)                     # mysql / mariadb / oracle / postgresql
+    host = Column(String(255), nullable=False)                       # 主机地址
+    port = Column(Integer, nullable=False)                           # 端口
+    username = Column(String(100), nullable=False)                   # 账号
+    password = Column(String(255), nullable=False)                   # 密码
+    database_name = Column(String(100), nullable=False)              # 库名
+    notes = Column(Text, default="")                                 # 备注
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    created_by = Column(String(100), nullable=True)

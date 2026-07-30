@@ -62,6 +62,7 @@ const MODULES: ModuleConfig[] = [
     color: '#3b82f6',
     children: [
       { key: '/http/request', icon: '📨', label: 'http数据请求' },
+      { key: '/http/db-query', icon: '🗄️', label: '数据库查询' },
     ],
   },
   {
