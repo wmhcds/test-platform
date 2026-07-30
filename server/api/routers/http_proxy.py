@@ -1,6 +1,10 @@
 """HTTP 请求代理接口：按前端指定的 method/url/headers/body 直接发起请求。
 
 不处理任何登录态，用户请求什么就转发什么，仅做纯代理并返回状态码、耗时与响应体。
+
+内网代理：通过标准环境变量 HTTP_PROXY / HTTPS_PROXY / NO_PROXY 配置。
+例如在云平台环境变量中设置 HTTP_PROXY=http://proxy.company.com:8080，
+容器即通过公司代理访问 beta2.vb.oa.com 等内网主机。
 """
 import json
 import os
@@ -22,6 +26,20 @@ UA = (
     "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
 )
 
+# 按环境变量构建代理配置，requests 库原生支持 HTTP_PROXY / HTTPS_PROXY
+def _build_proxies() -> dict | None:
+    proxies = {}
+    for scheme in ("http", "https"):
+        env_val = os.getenv(f"{scheme.upper()}_PROXY") or os.getenv(f"{scheme}_proxy")
+        if env_val:
+            proxies[scheme] = env_val
+    no_proxy = os.getenv("NO_PROXY") or os.getenv("no_proxy")
+    if no_proxy:
+        proxies["no_proxy"] = no_proxy
+    return proxies if proxies else None
+
+_PROXIES = _build_proxies()
+
 
 @router.post("/send")
 async def send_request(
@@ -33,13 +51,9 @@ async def send_request(
 ):
     """代理发起 HTTP 请求，返回状态码、耗时与格式化响应体。
 
-    协议处理：用户输入 http:// 与 https:// 等价，统一按 https 转发。
-    原因是内网环境 HTTP 通道常被拦截（返回 404 空 body），而用户期望请求的是
-    同一资源，协议差异不影响业务语义。
+    用户请求什么就转发什么，不做协议改写或登录态注入。
     """
     url = url.strip()
-    if url.startswith("http://"):
-        url = "https://" + url[len("http://"):]
     if url.startswith("http://") or url.startswith("https://"):
         full_url = url
     elif url.startswith("/"):
@@ -61,7 +75,9 @@ async def send_request(
         except json.JSONDecodeError as e:
             return {"error": f"Headers JSON 格式错误: {e}"}
 
-    kwargs = {"verify": VERIFY_SSL, "timeout": 15, "allow_redirects": True}
+    kwargs: dict = {"verify": VERIFY_SSL, "timeout": 15, "allow_redirects": True}
+    if _PROXIES:
+        kwargs["proxies"] = _PROXIES
     method = (method or "GET").upper()
 
     try:
