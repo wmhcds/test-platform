@@ -8,6 +8,7 @@ import {
   RocketOutlined,
   TeamOutlined,
   SettingOutlined,
+  ApiOutlined,
   LeftOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -54,6 +55,16 @@ const MODULES: ModuleConfig[] = [
     ],
   },
   {
+    key: 'http',
+    prefix: '/http',
+    label: '请求中心',
+    icon: <ApiOutlined />,
+    color: '#3b82f6',
+    children: [
+      { key: '/http/request', icon: '📨', label: 'http数据请求' },
+    ],
+  },
+  {
     key: 'config',
     prefix: '/config',
     label: '配置中心',
@@ -62,7 +73,6 @@ const MODULES: ModuleConfig[] = [
     children: [
       { key: '/config/scheduler', icon: '⏰', label: '定时器配置' },
       { key: '/config/database', icon: '🗄️', label: '数据库配置' },
-      { key: '/config/http-request', icon: '📨', label: '请求报文配置' },
     ],
   },
 ]

@@ -43,7 +43,7 @@ export default function App() {
         <Route path="/user/invite-codes" element={<InviteCodes />} />
         <Route path="/config/scheduler" element={<SchedulerConfig />} />
         <Route path="/config/database" element={<DatabaseConfig />} />
-        <Route path="/config/http-request" element={<HttpRequestConfig />} />
+        <Route path="/http/request" element={<HttpRequestConfig />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

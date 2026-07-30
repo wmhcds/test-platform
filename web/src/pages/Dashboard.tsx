@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { RocketOutlined, TeamOutlined, SettingOutlined } from '@ant-design/icons'
+import { RocketOutlined, TeamOutlined, SettingOutlined, ApiOutlined } from '@ant-design/icons'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -22,6 +22,15 @@ export default function Dashboard() {
       color: '#10b981',
       glow: 'rgba(16, 185, 129, 0.4)',
       onClick: () => navigate('/user/users'),
+    },
+    {
+      key: 'http',
+      title: '请求中心',
+      icon: <ApiOutlined style={{ fontSize: 48 }} />,
+      desc: 'HTTP 数据请求 · 请求报文管理',
+      color: '#3b82f6',
+      glow: 'rgba(59, 130, 246, 0.4)',
+      onClick: () => navigate('/http/request'),
     },
     {
       key: 'config',
