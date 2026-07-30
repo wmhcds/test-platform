@@ -31,8 +31,15 @@ async def send_request(
     body: Optional[str] = Form(None),
     files: List[UploadFile] = File(default=[]),
 ):
-    """代理发起 HTTP 请求，返回状态码、耗时与格式化响应体。"""
+    """代理发起 HTTP 请求，返回状态码、耗时与格式化响应体。
+
+    协议处理：用户输入 http:// 与 https:// 等价，统一按 https 转发。
+    原因是内网环境 HTTP 通道常被拦截（返回 404 空 body），而用户期望请求的是
+    同一资源，协议差异不影响业务语义。
+    """
     url = url.strip()
+    if url.startswith("http://"):
+        url = "https://" + url[len("http://"):]
     if url.startswith("http://") or url.startswith("https://"):
         full_url = url
     elif url.startswith("/"):
