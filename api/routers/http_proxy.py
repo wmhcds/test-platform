@@ -49,14 +49,19 @@ async def send_request(
 
     print(f"[http_proxy] {method.upper()} {full_url}")
 
-    req_headers = {"User-Agent": UA}
+    req_headers = {
+        "User-Agent": UA,
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "Connection": "keep-alive",
+    }
     if headers and headers.strip():
         try:
             req_headers.update(json.loads(headers))
         except json.JSONDecodeError as e:
             return {"error": f"Headers JSON 格式错误: {e}"}
 
-    kwargs = {"verify": VERIFY_SSL, "timeout": 15}
+    kwargs = {"verify": VERIFY_SSL, "timeout": 15, "allow_redirects": True}
     method = (method or "GET").upper()
 
     try:
@@ -88,6 +93,14 @@ async def send_request(
                 headers=req_headers,
                 **kwargs,
             )
+
+        # 调试日志：输出响应状态、大小和前 300 字符
+        print(
+            f"[http_proxy] RESP {resp.status_code} | "
+            f"len={len(resp.content)}B | "
+            f"headers={dict(resp.headers)} | "
+            f"text[:300]={resp.text[:300]}"
+        )
 
         try:
             text = json.dumps(resp.json(), ensure_ascii=False, indent=2)
