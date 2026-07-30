@@ -129,9 +129,12 @@ async def send_request(
             "size": len(resp.content),
             "body": text,
         }
-    except requests.exceptions.ConnectionError:
-        return {"error": "连接失败：无法访问目标地址"}
+    except requests.exceptions.ConnectionError as e:
+        print(f"[http_proxy] ERROR ConnectionError: {e}")
+        return {"error": f"连接失败：无法访问目标地址 ({e})"}
     except requests.exceptions.Timeout:
+        print("[http_proxy] ERROR Timeout")
         return {"error": "请求超时 (>15s)"}
     except Exception as ex:
-        return {"error": f"请求异常: {ex}"}
+        print(f"[http_proxy] ERROR {type(ex).__name__}: {ex}")
+        return {"error": f"请求异常: {type(ex).__name__}: {ex}"}
